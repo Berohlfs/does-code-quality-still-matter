@@ -23,10 +23,16 @@ app.get("/api/todos", (req, res) => {
 });
 
 app.post("/api/todos", (req, res) => {
-  const { text } = req.body;
-  if (!text || !text.trim()) return res.status(400).json({ error: "Text is required" });
+  const { title, description, dueDate } = req.body;
+  if (!title || !title.trim()) return res.status(400).json({ error: "Title is required" });
   const todos = readTodos();
-  const todo = { id: Date.now(), text: text.trim(), done: false };
+  const todo = {
+    id: Date.now(),
+    title: title.trim(),
+    description: (description || "").trim(),
+    status: ["pending", "in-progress", "done"].includes(req.body.status) ? req.body.status : "pending",
+    dueDate: dueDate || null
+  };
   todos.push(todo);
   writeTodos(todos);
   res.status(201).json(todo);
@@ -36,8 +42,10 @@ app.put("/api/todos/:id", (req, res) => {
   const todos = readTodos();
   const todo = todos.find(t => t.id === Number(req.params.id));
   if (!todo) return res.status(404).json({ error: "Not found" });
-  if (req.body.text !== undefined) todo.text = req.body.text.trim();
-  if (req.body.done !== undefined) todo.done = req.body.done;
+  if (req.body.title !== undefined) todo.title = req.body.title.trim();
+  if (req.body.description !== undefined) todo.description = req.body.description.trim();
+  if (req.body.status !== undefined) todo.status = req.body.status;
+  if (req.body.dueDate !== undefined) todo.dueDate = req.body.dueDate;
   writeTodos(todos);
   res.json(todo);
 });
