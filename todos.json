@@ -3,35 +3,35 @@
     "id": 1774897771993,
     "title": "dasdas",
     "description": "",
-    "status": "pending",
+    "status": "in-progress",
     "dueDate": "2026-03-30"
   },
   {
     "id": 1774897780054,
     "title": "dasdas",
     "description": "",
-    "status": "pending",
+    "status": "in-progress",
     "dueDate": "2026-03-19"
   },
   {
     "id": 1774897790284,
     "title": "dsadsadas",
     "description": "",
-    "status": "pending",
+    "status": "done",
     "dueDate": "2026-03-02"
   },
   {
     "id": 1774897825004,
     "title": "oiioio",
     "description": "",
-    "status": "pending",
+    "status": "in-progress",
     "dueDate": "2026-03-30"
   },
   {
     "id": 1774897937468,
     "title": "dasdsadas",
     "description": "",
-    "status": "in-progress",
+    "status": "pending",
     "dueDate": "2026-03-30"
   },
   {
@@ -54,19 +54,6 @@
     "description": "teste",
     "status": "pending",
     "dueDate": "2026-03-31",
-    "attachments": [
-      {
-        "id": "fd15e1aca899",
-        "filename": "1d47b8e3a444ffd1.html",
-        "originalName": "index.html",
-        "size": 19409
-      },
-      {
-        "id": "0d2d19f85f89",
-        "filename": "a6fe2e5fa95e5c4c.js",
-        "originalName": "server.js",
-        "size": 4089
-      }
-    ]
+    "attachments": []
   }
 ]
