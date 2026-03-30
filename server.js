@@ -35,16 +35,33 @@ function writeTodos(todos) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(todos, null, 2));
 }
 
+// Collect a todo and all its descendants (recursive)
+function getDescendantIds(todos, parentId) {
+  const ids = [];
+  for (const t of todos) {
+    if (t.parentId === parentId) {
+      ids.push(t.id);
+      ids.push(...getDescendantIds(todos, t.id));
+    }
+  }
+  return ids;
+}
+
 app.get("/api/todos", (req, res) => {
   res.json(readTodos());
 });
 
 app.post("/api/todos", (req, res) => {
-  const { title, description, dueDate } = req.body;
+  const { title, description, dueDate, parentId } = req.body;
   if (!title || !title.trim()) return res.status(400).json({ error: "Title is required" });
   const todos = readTodos();
+  if (parentId != null) {
+    const parent = todos.find(t => t.id === Number(parentId));
+    if (!parent) return res.status(400).json({ error: "Parent todo not found" });
+  }
   const todo = {
     id: Date.now(),
+    parentId: parentId != null ? Number(parentId) : null,
     title: title.trim(),
     description: (description || "").trim(),
     status: ["pending", "in-progress", "done"].includes(req.body.status) ? req.body.status : "pending",
@@ -72,14 +89,37 @@ app.delete("/api/todos/:id", (req, res) => {
   let todos = readTodos();
   const todo = todos.find(t => t.id === Number(req.params.id));
   if (!todo) return res.status(404).json({ error: "Not found" });
-  // Clean up attachment files
-  if (todo.attachments) {
-    for (const att of todo.attachments) {
-      const fp = path.join(UPLOADS_DIR, att.filename);
-      if (fs.existsSync(fp)) fs.unlinkSync(fp);
+
+  const cascade = req.query.cascade !== "false";
+
+  if (cascade) {
+    // Delete this todo and all descendants
+    const idsToDelete = new Set([todo.id, ...getDescendantIds(todos, todo.id)]);
+    for (const t of todos) {
+      if (idsToDelete.has(t.id) && t.attachments) {
+        for (const att of t.attachments) {
+          const fp = path.join(UPLOADS_DIR, att.filename);
+          if (fs.existsSync(fp)) fs.unlinkSync(fp);
+        }
+      }
     }
+    todos = todos.filter(t => !idsToDelete.has(t.id));
+  } else {
+    // Reparent direct children to the deleted todo's parent
+    const newParent = todo.parentId || null;
+    for (const t of todos) {
+      if (t.parentId === todo.id) t.parentId = newParent;
+    }
+    // Clean up only this todo's attachments
+    if (todo.attachments) {
+      for (const att of todo.attachments) {
+        const fp = path.join(UPLOADS_DIR, att.filename);
+        if (fs.existsSync(fp)) fs.unlinkSync(fp);
+      }
+    }
+    todos = todos.filter(t => t.id !== todo.id);
   }
-  todos = todos.filter(t => t.id !== todo.id);
+
   writeTodos(todos);
   res.status(204).end();
 });
