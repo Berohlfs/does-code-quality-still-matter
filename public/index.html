@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo List</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 960px;
+      transition: max-width 0.3s;
+    }
+
+    .container.list-view { max-width: 660px; }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .top-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+    }
+
+    .filters button {
+      padding: 6px 14px;
+      border: 2px solid #d1d5db;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filters button.active {
+      border-color: #6366f1;
+      background: #6366f1;
+      color: #fff;
+    }
+
+    .view-toggle {
+      display: flex;
+      border: 2px solid #d1d5db;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .view-toggle button {
+      padding: 6px 12px;
+      border: none;
+      background: #fff;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .view-toggle button.active {
+      background: #6366f1;
+      color: #fff;
+    }
+
+    .add-btn {
+      padding: 10px 20px;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .add-btn:hover { background: #4f46e5; }
+
+    /* ── List View ── */
+    .todo-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .todo-item {
+      background: #fff;
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border-left: 4px solid #d1d5db;
+    }
+
+    .todo-item.status-pending { border-left-color: #f59e0b; }
+    .todo-item.status-in-progress { border-left-color: #3b82f6; }
+    .todo-item.status-done { border-left-color: #10b981; }
+
+    .todo-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .todo-title {
+      flex: 1;
+      font-size: 1.05rem;
+      font-weight: 600;
+      word-break: break-word;
+    }
+
+    .todo-item.status-done > .todo-body > .todo-header > .todo-title,
+    .kanban-card.status-done > .todo-body > .todo-header > .todo-title {
+      text-decoration: line-through;
+      opacity: 0.5;
+    }
+
+    .todo-actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 4px 6px;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    .todo-actions button:hover { background: #f3f4f6; }
+
+    .todo-description {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin-bottom: 8px;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .todo-meta {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-size: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .status-badge.pending { background: #fef3c7; color: #92400e; }
+    .status-badge.in-progress { background: #dbeafe; color: #1e40af; }
+    .status-badge.done { background: #d1fae5; color: #065f46; }
+
+    .due-date { color: #6b7280; }
+    .due-date.overdue { color: #ef4444; font-weight: 600; }
+
+    .empty {
+      text-align: center;
+      color: #9ca3af;
+      padding: 32px 0;
+      font-size: 0.95rem;
+    }
+
+    /* Attachments */
+    .todo-attachments {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .att-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f3f4f6;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      color: #374151;
+      max-width: 220px;
+    }
+
+    .att-chip a {
+      color: #4f46e5;
+      text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .att-chip a:hover { text-decoration: underline; }
+
+    .att-chip .att-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: #9ca3af;
+      padding: 0 2px;
+      line-height: 1;
+    }
+
+    .att-chip .att-remove:hover { color: #ef4444; }
+
+    /* ── Nested / Subtasks (list view) ── */
+    .subtask-list {
+      list-style: none;
+      margin-top: 10px;
+      margin-left: 6px;
+      padding-left: 14px;
+      border-left: 2px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .subtask-list .subtask-list {
+      padding-left: 12px;
+    }
+
+    .subtask-list .todo-item {
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .subtask-list .todo-title { font-size: 0.95rem; }
+    .subtask-list .todo-description { font-size: 0.84rem; }
+
+    .toggle-children {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.75rem;
+      color: #6366f1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .toggle-children:hover { background: #eef2ff; }
+
+    .add-subtask-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: #6366f1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .add-subtask-btn:hover { background: #eef2ff; }
+
+    .child-count {
+      font-size: 0.72rem;
+      color: #9ca3af;
+      margin-left: 2px;
+    }
+
+    /* ── Kanban Board ── */
+    .kanban-board {
+      display: none;
+      gap: 16px;
+    }
+
+    .kanban-board.visible {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .kanban-column {
+      background: #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .kanban-column-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+
+    .kanban-column-header .col-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .kanban-column[data-status="pending"] .col-dot { background: #f59e0b; }
+    .kanban-column[data-status="in-progress"] .col-dot { background: #3b82f6; }
+    .kanban-column[data-status="done"] .col-dot { background: #10b981; }
+
+    .kanban-column-header h3 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      flex: 1;
+    }
+
+    .kanban-column-header .col-count {
+      font-size: 0.78rem;
+      background: #d1d5db;
+      padding: 1px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .kanban-cards {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 40px;
+    }
+
+    .kanban-cards.drag-over {
+      background: rgba(99,102,241,0.08);
+      border-radius: 8px;
+    }
+
+    .kanban-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      cursor: grab;
+      transition: box-shadow 0.2s, opacity 0.2s;
+    }
+
+    .kanban-card:active { cursor: grabbing; }
+
+    .kanban-card.dragging {
+      opacity: 0.5;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .kanban-card .todo-header { margin-bottom: 4px; }
+    .kanban-card .todo-title { font-size: 0.95rem; }
+
+    .kanban-card .todo-description {
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .kanban-card .todo-meta { font-size: 0.75rem; }
+    .kanban-card .todo-attachments { margin-top: 8px; }
+    .kanban-card .att-chip { font-size: 0.72rem; max-width: 160px; }
+
+    /* Kanban subtasks */
+    .kanban-subtasks {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .kanban-subtasks .kanban-subtasks {
+      margin-top: 4px;
+      padding-top: 0;
+      border-top: none;
+      margin-left: 4px;
+      padding-left: 10px;
+      border-left: 2px solid #e5e7eb;
+    }
+
+    .kanban-subtask-header {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #9ca3af;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .kanban-subtask-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0;
+      font-size: 0.82rem;
+    }
+
+    .kanban-subtask-item .subtask-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .kanban-subtask-item .subtask-dot.pending { background: #f59e0b; }
+    .kanban-subtask-item .subtask-dot.in-progress { background: #3b82f6; }
+    .kanban-subtask-item .subtask-dot.done { background: #10b981; }
+
+    .kanban-subtask-item .subtask-text {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .kanban-subtask-item.done .subtask-text {
+      text-decoration: line-through;
+      opacity: 0.5;
+    }
+
+    .kanban-empty {
+      text-align: center;
+      color: #9ca3af;
+      font-size: 0.82rem;
+      padding: 20px 0;
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px;
+      width: 100%;
+      max-width: 460px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+
+    .modal h2 { margin-bottom: 20px; font-size: 1.25rem; }
+
+    .modal .parent-info {
+      font-size: 0.82rem;
+      color: #6366f1;
+      margin-bottom: 14px;
+      padding: 8px 12px;
+      background: #eef2ff;
+      border-radius: 6px;
+    }
+
+    .modal label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #374151;
+    }
+
+    .modal input[type="text"],
+    .modal input[type="date"],
+    .modal textarea,
+    .modal select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      margin-bottom: 14px;
+    }
+
+    .modal textarea { resize: vertical; min-height: 70px; }
+
+    .modal input:focus,
+    .modal textarea:focus,
+    .modal select:focus { border-color: #6366f1; }
+
+    .file-upload-area { margin-bottom: 14px; }
+
+    .file-drop-zone {
+      border: 2px dashed #d1d5db;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      color: #9ca3af;
+      font-size: 0.9rem;
+    }
+
+    .file-drop-zone:hover,
+    .file-drop-zone.dragover {
+      border-color: #6366f1;
+      background: #f5f3ff;
+      color: #6366f1;
+    }
+
+    .file-drop-zone input[type="file"] { display: none; }
+
+    .pending-files { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .pending-file {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #eef2ff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      color: #4338ca;
+    }
+
+    .pending-file .remove-pending {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: #9ca3af;
+      padding: 0 2px;
+    }
+
+    .pending-file .remove-pending:hover { color: #ef4444; }
+
+    .existing-attachments { margin-bottom: 14px; }
+
+    .existing-attachments .att-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .modal-buttons button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+
+    .btn-cancel { background: #e5e7eb; color: #374151; }
+    .btn-cancel:hover { background: #d1d5db; }
+    .btn-save { background: #6366f1; color: #fff; }
+    .btn-save:hover { background: #4f46e5; }
+
+    @media (max-width: 700px) {
+      .kanban-board.visible { grid-template-columns: 1fr; }
+      .kanban-column { min-height: 80px; }
+      .subtask-list {
+        margin-left: 2px;
+        padding-left: 10px;
+      }
+      .subtask-list .subtask-list {
+        padding-left: 8px;
+      }
+      .subtask-list .todo-item {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container list-view" id="appContainer">
+    <h1>Todo List</h1>
+
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <div class="view-toggle" id="viewToggle">
+          <button class="active" data-view="list">List</button>
+          <button data-view="board">Board</button>
+        </div>
+        <div class="filters" id="filtersBar">
+          <button class="active" data-filter="all">All</button>
+          <button data-filter="pending">Pending</button>
+          <button data-filter="in-progress">In Progress</button>
+          <button data-filter="done">Done</button>
+        </div>
+      </div>
+      <button class="add-btn" id="openAdd">+ Add</button>
+    </div>
+
+    <!-- List view -->
+    <ul class="todo-list" id="todoList"></ul>
+
+    <!-- Kanban view -->
+    <div class="kanban-board" id="kanbanBoard">
+      <div class="kanban-column" data-status="pending">
+        <div class="kanban-column-header">
+          <span class="col-dot"></span>
+          <h3>Pending</h3>
+          <span class="col-count" data-count-status="pending">0</span>
+        </div>
+        <div class="kanban-cards" data-status="pending"></div>
+      </div>
+      <div class="kanban-column" data-status="in-progress">
+        <div class="kanban-column-header">
+          <span class="col-dot"></span>
+          <h3>In Progress</h3>
+          <span class="col-count" data-count-status="in-progress">0</span>
+        </div>
+        <div class="kanban-cards" data-status="in-progress"></div>
+      </div>
+      <div class="kanban-column" data-status="done">
+        <div class="kanban-column-header">
+          <span class="col-dot"></span>
+          <h3>Done</h3>
+          <span class="col-count" data-count-status="done">0</span>
+        </div>
+        <div class="kanban-cards" data-status="done"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h2 id="modalTitle">New Todo</h2>
+      <div class="parent-info" id="parentInfo" style="display:none"></div>
+      <form id="todoForm">
+        <input type="hidden" id="editId">
+        <input type="hidden" id="parentId">
+
+        <label for="fieldTitle">Title *</label>
+        <input type="text" id="fieldTitle" required autocomplete="off">
+
+        <label for="fieldDesc">Description</label>
+        <textarea id="fieldDesc"></textarea>
+
+        <label for="fieldStatus">Status</label>
+        <select id="fieldStatus">
+          <option value="pending">Pending</option>
+          <option value="in-progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+
+        <label for="fieldDue">Due Date</label>
+        <input type="date" id="fieldDue">
+
+        <div class="existing-attachments" id="existingAttachments" style="display:none">
+          <div class="att-label">Current Attachments</div>
+          <div class="todo-attachments" id="existingAttList"></div>
+        </div>
+
+        <label>Attachments</label>
+        <div class="file-upload-area">
+          <div class="file-drop-zone" id="dropZone">
+            Click or drag files here (max 4 MB each)
+            <input type="file" id="fileInput" multiple>
+          </div>
+          <div class="pending-files" id="pendingFiles"></div>
+        </div>
+
+        <div class="modal-buttons">
+          <button type="button" class="btn-cancel" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn-save">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete confirmation dialog -->
+  <div class="modal-overlay" id="deleteDialogOverlay">
+    <div class="modal" style="max-width:400px">
+      <h2>Delete Todo</h2>
+      <p id="deleteDialogMsg" style="margin-bottom:18px;font-size:0.92rem;color:#374151;line-height:1.5"></p>
+      <div class="modal-buttons" style="flex-direction:column;gap:8px">
+        <button class="btn-save" id="deleteCascadeBtn" style="background:#ef4444;text-align:center">Delete all</button>
+        <button class="btn-save" id="deleteReparentBtn" style="background:#f59e0b;color:#1a1a2e;text-align:center">Keep subtasks</button>
+        <button class="btn-cancel" id="deleteCancelBtn" style="text-align:center">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let todos = [];
+    let filter = "all";
+    let viewMode = "list";
+    let pendingFileList = [];
+    const collapsed = new Set();
+
+    const appContainer = document.getElementById("appContainer");
+    const todoList = document.getElementById("todoList");
+    const kanbanBoard = document.getElementById("kanbanBoard");
+    const filtersBar = document.getElementById("filtersBar");
+    const modalOverlay = document.getElementById("modalOverlay");
+    const todoForm = document.getElementById("todoForm");
+    const modalTitle = document.getElementById("modalTitle");
+    const editId = document.getElementById("editId");
+    const parentIdField = document.getElementById("parentId");
+    const parentInfo = document.getElementById("parentInfo");
+    const fieldTitle = document.getElementById("fieldTitle");
+    const fieldDesc = document.getElementById("fieldDesc");
+    const fieldStatus = document.getElementById("fieldStatus");
+    const fieldDue = document.getElementById("fieldDue");
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    const pendingFilesEl = document.getElementById("pendingFiles");
+    const existingAttachments = document.getElementById("existingAttachments");
+    const existingAttList = document.getElementById("existingAttList");
+
+    // ── Data helpers ──
+    async function fetchTodos() {
+      const res = await fetch("/api/todos");
+      todos = await res.json();
+      render();
+    }
+
+    function getChildren(parentId) {
+      return todos.filter(t => t.parentId === parentId);
+    }
+
+    function getAllDescendants(parentId) {
+      const children = getChildren(parentId);
+      let all = [...children];
+      for (const c of children) all.push(...getAllDescendants(c.id));
+      return all;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "";
+      const d = new Date(dateStr + "T00:00:00");
+      return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + " B";
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+      return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
+
+    function isOverdue(todo) {
+      if (!todo.dueDate || todo.status === "done") return false;
+      return new Date(todo.dueDate + "T23:59:59") < new Date();
+    }
+
+    function statusLabel(s) {
+      return s === "in-progress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    function renderAttachmentChips(attachments, todoId) {
+      if (!attachments || attachments.length === 0) return "";
+      const chips = attachments.map(a => `
+        <span class="att-chip">
+          <a href="${escapeHtml(a.url)}" target="_blank" title="${escapeHtml(a.originalName)} (${formatSize(a.size)})">${escapeHtml(a.originalName)}</a>
+          <button class="att-remove" data-todo-id="${todoId}" data-att-id="${a.id}" title="Remove">&#10005;</button>
+        </span>
+      `).join("");
+      return `<div class="todo-attachments">${chips}</div>`;
+    }
+
+    // ── Render ──
+    function render() {
+      if (viewMode === "list") renderList();
+      else renderKanban();
+    }
+
+    // Build the card body HTML (shared between list & kanban)
+    function todoBodyHtml(t, showStatus) {
+      return `
+        <div class="todo-body">
+          <div class="todo-header">
+            <span class="todo-title">${escapeHtml(t.title)}</span>
+            <span class="todo-actions">
+              <button class="add-subtask-btn" data-parent-id="${t.id}" title="Add subtask">+ sub</button>
+              <button class="edit-btn" title="Edit">&#9998;</button>
+              <button class="delete-btn" title="Delete">&#10005;</button>
+            </span>
+          </div>
+          ${t.description ? `<div class="todo-description">${escapeHtml(t.description)}</div>` : ""}
+          <div class="todo-meta">
+            ${showStatus ? `<span class="status-badge ${t.status}">${statusLabel(t.status)}</span>` : ""}
+            ${t.dueDate ? `<span class="due-date ${isOverdue(t) ? "overdue" : ""}">Due: ${formatDate(t.dueDate)}</span>` : ""}
+          </div>
+          ${renderAttachmentChips(t.attachments, t.id)}
+        </div>
+      `;
+    }
+
+    // Recursive list rendering
+    function renderTodoTree(parentId, depth) {
+      let items = getChildren(parentId);
+      if (filter !== "all") {
+        items = items.filter(t => {
+          if (t.status === filter) return true;
+          // Also show if any descendant matches
+          return getAllDescendants(t.id).some(d => d.status === filter);
+        });
+      }
+      if (items.length === 0) return "";
+
+      const tag = depth === 0 ? "" : "";
+      let html = depth === 0 ? "" : `<ul class="subtask-list">`;
+
+      for (const t of items) {
+        const children = getChildren(t.id);
+        const hasChildren = children.length > 0;
+        const isCollapsed = collapsed.has(t.id);
+        const childHtml = isCollapsed ? "" : renderTodoTree(t.id, depth + 1);
+
+        const toggleBtn = hasChildren
+          ? `<button class="toggle-children" data-toggle-id="${t.id}">${isCollapsed ? "&#9654;" : "&#9660;"} <span class="child-count">${children.length}</span></button>`
+          : "";
+
+        html += `
+          <li class="todo-item status-${t.status}" data-id="${t.id}">
+            ${toggleBtn}
+            ${todoBodyHtml(t, true)}
+            ${childHtml}
+          </li>
+        `;
+      }
+
+      html += depth === 0 ? "" : "</ul>";
+      return html;
+    }
+
+    function renderList() {
+      const rootItems = todos.filter(t => !t.parentId || t.parentId === null);
+      let filtered = rootItems;
+      if (filter !== "all") {
+        filtered = rootItems.filter(t => {
+          if (t.status === filter) return true;
+          return getAllDescendants(t.id).some(d => d.status === filter);
+        });
+      }
+
+      if (filtered.length === 0) {
+        const label = filter === "all" ? "" : statusLabel(filter).toLowerCase() + " ";
+        todoList.innerHTML = `<li class="empty">No ${label}todos yet.</li>`;
+        return;
+      }
+
+      let html = "";
+      for (const t of filtered) {
+        const children = getChildren(t.id);
+        const hasChildren = children.length > 0;
+        const isCollapsed = collapsed.has(t.id);
+        const childHtml = isCollapsed ? "" : renderTodoTree(t.id, 1);
+
+        const toggleBtn = hasChildren
+          ? `<button class="toggle-children" data-toggle-id="${t.id}">${isCollapsed ? "&#9654;" : "&#9660;"} <span class="child-count">${children.length}</span></button>`
+          : "";
+
+        html += `
+          <li class="todo-item status-${t.status}" data-id="${t.id}">
+            ${toggleBtn}
+            ${todoBodyHtml(t, true)}
+            ${childHtml}
+          </li>
+        `;
+      }
+      todoList.innerHTML = html;
+    }
+
+    // Kanban: only top-level items positioned by their status, subtasks shown inline
+    function renderKanbanSubtasks(parentId, depth) {
+      const children = getChildren(parentId);
+      if (children.length === 0) return "";
+
+      const isTop = depth === 0;
+      let html = `<div class="kanban-subtasks">`;
+      if (isTop) html += `<div class="kanban-subtask-header">Subtasks (${children.length})</div>`;
+      for (const c of children) {
+        html += `
+          <div class="kanban-subtask-item ${c.status}" data-id="${c.id}">
+            <span class="subtask-dot ${c.status}"></span>
+            <span class="subtask-text">${escapeHtml(c.title)}</span>
+            <span class="todo-actions">
+              <button class="add-subtask-btn" data-parent-id="${c.id}" title="Add subtask" style="font-size:0.78rem;padding:2px 4px">+ sub</button>
+              <button class="edit-btn" title="Edit" style="font-size:0.85rem;padding:2px 4px">&#9998;</button>
+              <button class="delete-btn" title="Delete" style="font-size:0.85rem;padding:2px 4px">&#10005;</button>
+            </span>
+          </div>
+          ${renderKanbanSubtasks(c.id, depth + 1)}
+        `;
+      }
+      html += "</div>";
+      return html;
+    }
+
+    function renderKanban() {
+      const statuses = ["pending", "in-progress", "done"];
+      const rootTodos = todos.filter(t => !t.parentId || t.parentId === null);
+
+      for (const status of statuses) {
+        const col = kanbanBoard.querySelector(`.kanban-cards[data-status="${status}"]`);
+        const items = rootTodos.filter(t => t.status === status);
+        kanbanBoard.querySelector(`[data-count-status="${status}"]`).textContent = items.length;
+
+        if (items.length === 0) {
+          col.innerHTML = `<div class="kanban-empty">No items</div>`;
+        } else {
+          col.innerHTML = items.map(t => `
+            <div class="kanban-card status-${t.status}" data-id="${t.id}" draggable="true">
+              ${todoBodyHtml(t, false)}
+              ${renderKanbanSubtasks(t.id, 0)}
+            </div>
+          `).join("");
+        }
+      }
+    }
+
+    // ── View Toggle ──
+    document.getElementById("viewToggle").addEventListener("click", e => {
+      if (e.target.tagName !== "BUTTON") return;
+      const view = e.target.dataset.view;
+      if (view === viewMode) return;
+      viewMode = view;
+      document.querySelectorAll("#viewToggle button").forEach(b => b.classList.remove("active"));
+      e.target.classList.add("active");
+
+      if (viewMode === "board") {
+        appContainer.classList.remove("list-view");
+        todoList.style.display = "none";
+        kanbanBoard.classList.add("visible");
+        filtersBar.style.display = "none";
+      } else {
+        appContainer.classList.add("list-view");
+        todoList.style.display = "";
+        kanbanBoard.classList.remove("visible");
+        filtersBar.style.display = "";
+      }
+      render();
+    });
+
+    // ── Kanban Drag & Drop ──
+    kanbanBoard.addEventListener("dragstart", e => {
+      const card = e.target.closest(".kanban-card");
+      if (!card) return;
+      card.classList.add("dragging");
+      e.dataTransfer.setData("text/plain", card.dataset.id);
+      e.dataTransfer.effectAllowed = "move";
+    });
+
+    kanbanBoard.addEventListener("dragend", e => {
+      const card = e.target.closest(".kanban-card");
+      if (card) card.classList.remove("dragging");
+      document.querySelectorAll(".kanban-cards.drag-over").forEach(el => el.classList.remove("drag-over"));
+    });
+
+    kanbanBoard.addEventListener("dragover", e => {
+      const zone = e.target.closest(".kanban-cards");
+      if (!zone) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      zone.classList.add("drag-over");
+    });
+
+    kanbanBoard.addEventListener("dragleave", e => {
+      const zone = e.target.closest(".kanban-cards");
+      if (zone && !zone.contains(e.relatedTarget)) zone.classList.remove("drag-over");
+    });
+
+    kanbanBoard.addEventListener("drop", async e => {
+      const zone = e.target.closest(".kanban-cards");
+      if (!zone) return;
+      e.preventDefault();
+      zone.classList.remove("drag-over");
+      const id = e.dataTransfer.getData("text/plain");
+      const newStatus = zone.dataset.status;
+      await fetch(`/api/todos/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus })
+      });
+      await fetchTodos();
+    });
+
+    // ── File Drop Zone ──
+    dropZone.addEventListener("click", () => fileInput.click());
+    dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("dragover"); });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      addPendingFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener("change", () => {
+      addPendingFiles(fileInput.files);
+      fileInput.value = "";
+    });
+
+    function addPendingFiles(files) {
+      for (const f of files) pendingFileList.push(f);
+      renderPendingFiles();
+    }
+
+    function renderPendingFiles() {
+      pendingFilesEl.innerHTML = pendingFileList.map((f, i) => `
+        <span class="pending-file">
+          ${escapeHtml(f.name)} (${formatSize(f.size)})
+          <button type="button" class="remove-pending" data-index="${i}">&#10005;</button>
+        </span>
+      `).join("");
+    }
+
+    pendingFilesEl.addEventListener("click", e => {
+      const btn = e.target.closest(".remove-pending");
+      if (!btn) return;
+      pendingFileList.splice(Number(btn.dataset.index), 1);
+      renderPendingFiles();
+    });
+
+    // ── Modal ──
+    function openModal(todo, newParentId) {
+      pendingFileList = [];
+      renderPendingFiles();
+
+      if (todo) {
+        // Editing existing
+        modalTitle.textContent = "Edit Todo";
+        editId.value = todo.id;
+        parentIdField.value = "";
+        fieldTitle.value = todo.title;
+        fieldDesc.value = todo.description || "";
+        fieldStatus.value = todo.status;
+        fieldDue.value = todo.dueDate || "";
+        // Show parent info
+        if (todo.parentId) {
+          const parent = todos.find(t => t.id === todo.parentId);
+          parentInfo.textContent = "Subtask of: " + (parent ? parent.title : "Unknown");
+          parentInfo.style.display = "";
+        } else {
+          parentInfo.style.display = "none";
+        }
+        if (todo.attachments && todo.attachments.length > 0) {
+          existingAttachments.style.display = "";
+          existingAttList.innerHTML = todo.attachments.map(a => `
+            <span class="att-chip">
+              <a href="${escapeHtml(a.url)}" target="_blank">${escapeHtml(a.originalName)}</a>
+              <button type="button" class="att-remove" data-todo-id="${todo.id}" data-att-id="${a.id}" title="Remove">&#10005;</button>
+            </span>
+          `).join("");
+        } else {
+          existingAttachments.style.display = "none";
+        }
+      } else {
+        // Creating new
+        const isSubtask = newParentId != null;
+        modalTitle.textContent = isSubtask ? "New Subtask" : "New Todo";
+        editId.value = "";
+        parentIdField.value = newParentId || "";
+        todoForm.reset();
+        fieldStatus.value = "pending";
+        existingAttachments.style.display = "none";
+        if (isSubtask) {
+          const parent = todos.find(t => t.id === Number(newParentId));
+          parentInfo.textContent = "Subtask of: " + (parent ? parent.title : "Unknown");
+          parentInfo.style.display = "";
+        } else {
+          parentInfo.style.display = "none";
+        }
+      }
+      modalOverlay.classList.add("open");
+      fieldTitle.focus();
+    }
+
+    function closeModal() { modalOverlay.classList.remove("open"); }
+
+    existingAttList.addEventListener("click", async e => {
+      const btn = e.target.closest(".att-remove");
+      if (!btn) return;
+      const todoId = btn.dataset.todoId;
+      const attId = btn.dataset.attId;
+      await fetch(`/api/todos/${todoId}/attachments/${attId}`, { method: "DELETE" });
+      await fetchTodos();
+      const updated = todos.find(t => t.id === Number(todoId));
+      if (updated) openModal(updated);
+    });
+
+    async function uploadFiles(todoId) {
+      if (pendingFileList.length === 0) return;
+      const formData = new FormData();
+      for (const f of pendingFileList) formData.append("files", f);
+      await fetch(`/api/todos/${todoId}/attachments`, { method: "POST", body: formData });
+    }
+
+    document.getElementById("openAdd").addEventListener("click", () => openModal(null, null));
+    document.getElementById("cancelBtn").addEventListener("click", closeModal);
+    modalOverlay.addEventListener("click", e => { if (e.target === modalOverlay) closeModal(); });
+
+    todoForm.addEventListener("submit", async e => {
+      e.preventDefault();
+      const data = {
+        title: fieldTitle.value.trim(),
+        description: fieldDesc.value.trim(),
+        status: fieldStatus.value,
+        dueDate: fieldDue.value || null
+      };
+      if (!data.title) return;
+
+      const id = editId.value;
+      let todoId;
+      if (id) {
+        await fetch(`/api/todos/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        todoId = id;
+      } else {
+        const pId = parentIdField.value;
+        if (pId) data.parentId = Number(pId);
+        const res = await fetch("/api/todos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        const created = await res.json();
+        todoId = created.id;
+      }
+
+      await uploadFiles(todoId);
+      closeModal();
+      await fetchTodos();
+    });
+
+    // ── Filters (list view) ──
+    filtersBar.addEventListener("click", e => {
+      if (e.target.tagName !== "BUTTON") return;
+      filter = e.target.dataset.filter;
+      document.querySelectorAll("#filtersBar button").forEach(b => b.classList.remove("active"));
+      e.target.classList.add("active");
+      render();
+    });
+
+    // ── Delete dialog ──
+    const deleteDialogOverlay = document.getElementById("deleteDialogOverlay");
+    const deleteDialogMsg = document.getElementById("deleteDialogMsg");
+    let deleteDialogTodo = null;
+
+    function showDeleteDialog(todo) {
+      deleteDialogTodo = todo;
+      const children = getChildren(todo.id);
+      const allDesc = getAllDescendants(todo.id);
+      deleteDialogMsg.innerHTML = `<strong>${escapeHtml(todo.title)}</strong> has ${allDesc.length} subtask${allDesc.length > 1 ? "s" : ""}.<br><br>` +
+        `<strong>Delete all</strong> removes this todo and all its subtasks.<br>` +
+        `<strong>Keep subtasks</strong> moves them ${todo.parentId ? "under the parent todo" : "to the top level"}.`;
+      deleteDialogOverlay.classList.add("open");
+    }
+
+    function closeDeleteDialog() {
+      deleteDialogOverlay.classList.remove("open");
+      deleteDialogTodo = null;
+    }
+
+    document.getElementById("deleteCascadeBtn").addEventListener("click", async () => {
+      if (!deleteDialogTodo) return;
+      await fetch(`/api/todos/${deleteDialogTodo.id}?cascade=true`, { method: "DELETE" });
+      closeDeleteDialog();
+      await fetchTodos();
+    });
+
+    document.getElementById("deleteReparentBtn").addEventListener("click", async () => {
+      if (!deleteDialogTodo) return;
+      await fetch(`/api/todos/${deleteDialogTodo.id}?cascade=false`, { method: "DELETE" });
+      closeDeleteDialog();
+      await fetchTodos();
+    });
+
+    document.getElementById("deleteCancelBtn").addEventListener("click", closeDeleteDialog);
+    deleteDialogOverlay.addEventListener("click", e => {
+      if (e.target === deleteDialogOverlay) closeDeleteDialog();
+    });
+
+    // ── Card actions (works for both views) ──
+    function handleCardActions(root) {
+      root.addEventListener("click", async e => {
+        // Toggle collapse
+        const toggleBtn = e.target.closest(".toggle-children");
+        if (toggleBtn) {
+          const tid = Number(toggleBtn.dataset.toggleId);
+          if (collapsed.has(tid)) collapsed.delete(tid);
+          else collapsed.add(tid);
+          render();
+          return;
+        }
+
+        // Add subtask
+        const subBtn = e.target.closest(".add-subtask-btn");
+        if (subBtn) {
+          openModal(null, subBtn.dataset.parentId);
+          return;
+        }
+
+        // Remove attachment
+        const attBtn = e.target.closest(".att-remove");
+        if (attBtn) {
+          await fetch(`/api/todos/${attBtn.dataset.todoId}/attachments/${attBtn.dataset.attId}`, { method: "DELETE" });
+          await fetchTodos();
+          return;
+        }
+
+        // Find the closest data-id element to the clicked button
+        const actionBtn = e.target.closest(".edit-btn") || e.target.closest(".delete-btn");
+        if (!actionBtn) return;
+        const card = actionBtn.closest("[data-id]");
+        if (!card) return;
+        const id = Number(card.dataset.id);
+        const todo = todos.find(t => t.id === id);
+        if (!todo) return;
+
+        if (actionBtn.classList.contains("delete-btn")) {
+          const children = getChildren(id);
+          if (children.length > 0) {
+            showDeleteDialog(todo);
+          } else {
+            await fetch(`/api/todos/${id}`, { method: "DELETE" });
+            await fetchTodos();
+          }
+        }
+
+        if (actionBtn.classList.contains("edit-btn")) {
+          openModal(todo);
+        }
+      });
+    }
+
+    handleCardActions(todoList);
+    handleCardActions(kanbanBoard);
+
+    fetchTodos();
+  </script>
+</body>
+</html>

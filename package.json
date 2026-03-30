@@ -2,9 +2,9 @@
   "name": "does-code-quality-still-matter",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "api/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vercel dev",
     "start": "node server.js"
   },
   "repository": {
@@ -19,6 +19,8 @@
   },
   "homepage": "https://github.com/Berohlfs/does-code-quality-still-matter#readme",
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
+    "@vercel/blob": "^2.3.2",
     "express": "^5.2.1",
     "multer": "^2.1.1"
   }
