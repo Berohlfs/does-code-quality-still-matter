@@ -169,16 +169,17 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "todos";
-    let todos = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    let todos = [];
     let filter = "all";
 
     const todoInput = document.getElementById("todoInput");
     const todoList = document.getElementById("todoList");
     const addForm = document.getElementById("addForm");
 
-    function save() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    async function fetchTodos() {
+      const res = await fetch("/api/todos");
+      todos = await res.json();
+      render();
     }
 
     function render() {
@@ -209,14 +210,17 @@
       return div.innerHTML;
     }
 
-    addForm.addEventListener("submit", e => {
+    addForm.addEventListener("submit", async e => {
       e.preventDefault();
       const text = todoInput.value.trim();
       if (!text) return;
-      todos.push({ id: Date.now(), text, done: false });
+      await fetch("/api/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
       todoInput.value = "";
-      save();
-      render();
+      await fetchTodos();
     });
 
     document.querySelector(".filters").addEventListener("click", e => {
@@ -227,7 +231,7 @@
       render();
     });
 
-    todoList.addEventListener("click", e => {
+    todoList.addEventListener("click", async e => {
       const li = e.target.closest(".todo-item");
       if (!li) return;
       const id = Number(li.dataset.id);
@@ -235,15 +239,17 @@
       if (!todo) return;
 
       if (e.target.type === "checkbox") {
-        todo.done = e.target.checked;
-        save();
-        render();
+        await fetch(`/api/todos/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ done: e.target.checked })
+        });
+        await fetchTodos();
       }
 
       if (e.target.closest(".delete-btn")) {
-        todos = todos.filter(t => t.id !== id);
-        save();
-        render();
+        await fetch(`/api/todos/${id}`, { method: "DELETE" });
+        await fetchTodos();
       }
 
       if (e.target.closest(".edit-btn")) {
@@ -255,22 +261,27 @@
         span.replaceWith(input);
         input.focus();
 
-        const commit = () => {
+        const commit = async () => {
           const newText = input.value.trim();
-          if (newText) todo.text = newText;
-          save();
-          render();
+          if (newText && newText !== todo.text) {
+            await fetch(`/api/todos/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text: newText })
+            });
+          }
+          await fetchTodos();
         };
 
         input.addEventListener("blur", commit);
         input.addEventListener("keydown", e => {
           if (e.key === "Enter") commit();
-          if (e.key === "Escape") render();
+          if (e.key === "Escape") fetchTodos();
         });
       }
     });
 
-    render();
+    fetchTodos();
   </script>
 </body>
 </html>

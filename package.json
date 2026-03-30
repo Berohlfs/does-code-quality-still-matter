@@ -1,0 +1,24 @@
+{
+  "name": "does-code-quality-still-matter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Berohlfs/does-code-quality-still-matter.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Berohlfs/does-code-quality-still-matter/issues"
+  },
+  "homepage": "https://github.com/Berohlfs/does-code-quality-still-matter#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
