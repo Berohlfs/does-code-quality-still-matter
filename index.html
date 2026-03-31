@@ -184,18 +184,75 @@
       font-weight: 600;
     }
 
+    /* ── View Switch ── */
+    .view-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .view-switch input { display: none; }
+
+    .view-switch-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      transition: color var(--transition);
+    }
+
+    .view-switch input:not(:checked) ~ .view-switch-label:last-child,
+    .view-switch input:checked ~ .view-switch-label:last-child { color: var(--text-tertiary); }
+
+    /* Highlight active label */
+    .view-switch-label.active-label { color: var(--text-primary); }
+
+    .view-switch-track {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      transition: all var(--transition);
+      flex-shrink: 0;
+    }
+
+    .view-switch-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 14px;
+      height: 14px;
+      background: var(--accent);
+      border-radius: 50%;
+      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .view-switch input:checked ~ .view-switch-track .view-switch-thumb {
+      transform: translateX(16px);
+    }
+
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
     /* ── Theme Toggle ── */
     .theme-toggle {
-      width: 36px;
-      height: 36px;
+      width: auto;
+      padding: 8px 12px;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       background: var(--bg-secondary);
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 1rem;
+      font-size: 0.875rem;
+      line-height: 1;
       transition: all var(--transition);
       color: var(--text-secondary);
       flex-shrink: 0;
@@ -292,6 +349,7 @@
       justify-content: space-between;
       margin-bottom: 20px;
       gap: 12px;
+      padding-left: 8px;
     }
 
     .toolbar-label {
@@ -1197,6 +1255,78 @@
       .stats-bar { gap: 8px; }
       .stat-card { padding: 12px 14px; }
       .stat-value { font-size: 1.375rem; }
+
+      .app-shell { padding: 0 10px; }
+      .header-inner { padding: 10px 12px; gap: 8px; }
+
+      /* Header: stack controls */
+      .header-controls { flex-wrap: wrap; gap: 6px; }
+      .add-btn { padding: 6px 12px; font-size: 0.8125rem; }
+      .add-btn svg { width: 14px; height: 14px; }
+
+      /* Stats: 2x2 grid */
+      .stats-bar { gap: 6px; }
+      .stat-card { padding: 10px 12px; min-width: calc(50% - 4px); }
+      .stat-value { font-size: 1.25rem; }
+      .stat-label { font-size: 0.6875rem; }
+
+      /* Toolbar */
+      .toolbar { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .segmented-control { width: 100%; display: flex; }
+      .segmented-control button { flex: 1; text-align: center; padding: 6px 6px; font-size: 0.75rem; }
+
+      /* List cards: tighter, remove border-card look */
+      .todo-item {
+        padding: 12px 14px;
+        border-radius: var(--radius-sm);
+      }
+
+      .todo-title { font-size: 0.875rem; }
+      .todo-description { font-size: 0.75rem; }
+      .todo-meta { font-size: 0.6875rem; }
+
+      /* Actions always visible on mobile (no hover) */
+      .todo-actions { opacity: 1 !important; }
+      .todo-actions button { padding: 4px 5px; font-size: 0.8125rem; }
+
+      /* Kanban: compact cards */
+      .kanban-column {
+        padding: 10px;
+        border-radius: var(--radius-md);
+      }
+
+      .kanban-card {
+        padding: 10px 12px;
+        border-radius: var(--radius-sm);
+      }
+
+      .kanban-card .todo-title { font-size: 0.8125rem; }
+      .kanban-card .todo-description { font-size: 0.75rem; -webkit-line-clamp: 1; }
+      .kanban-card .todo-meta { font-size: 0.625rem; }
+      .kanban-card .todo-actions { opacity: 1 !important; }
+      .kanban-card .todo-header { flex-wrap: wrap; gap: 4px; }
+      .kanban-card .todo-actions button { padding: 3px 4px; font-size: 0.75rem; }
+
+      /* Kanban subtasks compact */
+      .kanban-subtask-item { font-size: 0.75rem; flex-wrap: wrap; gap: 4px; }
+      .kanban-subtask-header { font-size: 0.625rem; }
+
+      .kanban-column-header h3 { font-size: 0.75rem; }
+      .kanban-column-header .col-count { font-size: 0.6875rem; }
+
+      /* Attachment chips */
+      .att-chip { font-size: 0.6875rem; max-width: 160px; padding: 2px 8px; }
+
+      /* Subtask list tighter */
+      .subtask-list { padding-left: 8px; margin-left: 0; }
+      .subtask-list .todo-item { padding: 8px 10px; }
+      .subtask-list .todo-title { font-size: 0.8125rem; }
+
+      /* Modal full-width */
+      .modal { padding: 20px; max-width: 100%; }
+
+      /* Auth card */
+      .auth-card { padding: 28px 20px; }
     }
 
     /* ── Auth Screen ── */
@@ -1330,37 +1460,84 @@
 
     .auth-card .auth-switch a:hover { text-decoration: underline; }
 
-    /* ── User menu in header ── */
+    /* ── User avatar menu ── */
     .user-menu {
+      position: relative;
+    }
+
+    .avatar-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      color: #fff;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      transition: all var(--transition);
+      text-transform: uppercase;
+      flex-shrink: 0;
     }
 
-    .user-name {
+    .avatar-btn:hover { border-color: var(--accent); transform: scale(1.05); }
+
+    .avatar-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      min-width: 220px;
+      z-index: 60;
+      animation: slideUp 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+      overflow: hidden;
+    }
+
+    .avatar-dropdown.open { display: block; }
+
+    .avatar-dropdown-info {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .avatar-dropdown-name {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+      word-break: break-word;
+    }
+
+    .avatar-dropdown-email {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      word-break: break-all;
+    }
+
+    .avatar-dropdown-logout {
+      display: block;
+      width: 100%;
+      padding: 12px 16px;
+      background: none;
+      border: none;
+      text-align: left;
       font-size: 0.8125rem;
       font-weight: 600;
-      color: var(--text-secondary);
-      max-width: 120px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .btn-logout {
-      padding: 6px 12px;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      font-size: 0.75rem;
-      font-weight: 600;
       font-family: inherit;
-      color: var(--text-secondary);
+      color: var(--danger);
       cursor: pointer;
-      transition: all var(--transition);
+      transition: background var(--transition);
     }
 
-    .btn-logout:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+    .avatar-dropdown-logout:hover { background: var(--danger-bg); }
   </style>
 </head>
 <body>
@@ -1410,20 +1587,22 @@
       </div>
       <div class="header-spacer"></div>
       <div class="header-controls">
-        <div class="segmented-control" id="viewToggle">
-          <button class="active" data-view="list">List</button>
-          <button data-view="board">Board</button>
-        </div>
         <button class="theme-toggle" id="themeToggle" title="Toggle theme">
           <span id="themeIcon">&#9790;</span>
         </button>
         <button class="add-btn" id="openAdd">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
-          New Task
+          New
         </button>
-        <div class="user-menu">
-          <span class="user-name" id="userName"></span>
-          <button class="btn-logout" id="logoutBtn">Log out</button>
+        <div class="user-menu" id="userMenu">
+          <button class="avatar-btn" id="avatarBtn"></button>
+          <div class="avatar-dropdown" id="avatarDropdown">
+            <div class="avatar-dropdown-info">
+              <div class="avatar-dropdown-name" id="dropdownName"></div>
+              <div class="avatar-dropdown-email" id="dropdownEmail"></div>
+            </div>
+            <button class="avatar-dropdown-logout" id="logoutBtn">Log out</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1456,11 +1635,21 @@
     <!-- Toolbar -->
     <div class="toolbar">
       <span class="toolbar-label" id="toolbarLabel">All Tasks</span>
-      <div class="segmented-control" id="filtersBar">
-        <button class="active" data-filter="all">All</button>
-        <button data-filter="pending">Pending</button>
-        <button data-filter="in-progress">In Progress</button>
-        <button data-filter="done">Done</button>
+      <div class="toolbar-right">
+        <label class="view-switch" id="viewToggle">
+          <span class="view-switch-label">List</span>
+          <input type="checkbox" id="viewSwitchInput">
+          <span class="view-switch-track">
+            <span class="view-switch-thumb"></span>
+          </span>
+          <span class="view-switch-label">Board</span>
+        </label>
+        <div class="segmented-control" id="filtersBar">
+          <button class="active" data-filter="all">All</button>
+          <button data-filter="pending">Pending</button>
+          <button data-filter="in-progress">In Progress</button>
+          <button data-filter="done">Done</button>
+        </div>
       </div>
     </div>
 
@@ -1675,11 +1864,32 @@
 
     document.getElementById("logoutBtn").addEventListener("click", logout);
 
+    // ── Avatar dropdown ──
+    const avatarBtn = document.getElementById("avatarBtn");
+    const avatarDropdown = document.getElementById("avatarDropdown");
+
+    avatarBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      avatarDropdown.classList.toggle("open");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest("#userMenu")) avatarDropdown.classList.remove("open");
+    });
+
+    function updateUserUI() {
+      if (!currentUser) return;
+      const initials = currentUser.name.split(" ").map(w => w[0]).join("").slice(0, 2);
+      avatarBtn.textContent = initials;
+      document.getElementById("dropdownName").textContent = currentUser.name;
+      document.getElementById("dropdownEmail").textContent = currentUser.email;
+    }
+
     function showApp() {
       authScreen.style.display = "none";
       appHeader.style.display = "";
       appContainer.style.display = "";
-      document.getElementById("userName").textContent = currentUser ? currentUser.name : "";
+      updateUserUI();
       isInitialLoad = true;
       fetchTodos();
     }
@@ -2034,24 +2244,30 @@
     }
 
     // ── View Toggle ──
-    document.getElementById("viewToggle").addEventListener("click", e => {
-      if (e.target.tagName !== "BUTTON") return;
-      const view = e.target.dataset.view;
-      if (view === viewMode) return;
-      viewMode = view;
-      document.querySelectorAll("#viewToggle button").forEach(b => b.classList.remove("active"));
-      e.target.classList.add("active");
+    // ── View Switch ──
+    const viewSwitchInput = document.getElementById("viewSwitchInput");
+    const viewSwitchLabels = document.querySelectorAll("#viewToggle .view-switch-label");
+
+    function updateViewSwitchLabels() {
+      viewSwitchLabels[0].classList.toggle("active-label", viewMode === "list");
+      viewSwitchLabels[1].classList.toggle("active-label", viewMode === "board");
+    }
+    updateViewSwitchLabels();
+
+    viewSwitchInput.addEventListener("change", () => {
+      viewMode = viewSwitchInput.checked ? "board" : "list";
+      updateViewSwitchLabels();
 
       if (viewMode === "board") {
         appContainer.classList.remove("list-view");
         todoList.style.display = "none";
         kanbanBoard.classList.add("visible");
-        filtersBar.parentElement.style.display = "none";
+        filtersBar.style.display = "none";
       } else {
         appContainer.classList.add("list-view");
         todoList.style.display = "";
         kanbanBoard.classList.remove("visible");
-        filtersBar.parentElement.style.display = "";
+        filtersBar.style.display = "";
       }
       render();
     });

@@ -19,11 +19,11 @@ const mailTransporter = nodemailer.createTransport({
   },
 });
 
-async function sendNewTodoEmail(todo) {
+async function sendNewTodoEmail(todo, userEmail) {
   try {
     await mailTransporter.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
-      to: "berohlfs@gmail.com",
+      to: userEmail,
       subject: `New Todo: ${todo.title}`,
       text: [
         `A new todo item was added.`,
@@ -236,7 +236,7 @@ app.post("/api/todos", requireAuth, async (req, res) => {
     attachments: []
   };
 
-  sendNewTodoEmail(todo);
+  sendNewTodoEmail(todo, req.user.email);
 
   res.status(201).json(todo);
 });
