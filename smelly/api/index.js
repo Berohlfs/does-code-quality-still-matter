@@ -87,9 +87,21 @@ app.use(async (req, res, next) => {
           size INTEGER NOT NULL
         )
       `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS folders (
+          id BIGINT PRIMARY KEY,
+          user_id BIGINT NOT NULL,
+          name TEXT NOT NULL,
+          color TEXT DEFAULT '#6366f1',
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+      `;
       // Migrate existing tables: add user_id if missing
       try {
         await sql`ALTER TABLE todos ADD COLUMN IF NOT EXISTS user_id BIGINT`;
+      } catch (e) { /* column already exists */ }
+      try {
+        await sql`ALTER TABLE todos ADD COLUMN IF NOT EXISTS folder_id BIGINT`;
       } catch (e) { /* column already exists */ }
       migrated = true;
     }
@@ -180,6 +192,7 @@ app.get("/api/todos", requireAuth, async (req, res) => {
   res.json(todos.map(t => ({
     id: Number(t.id),
     parentId: t.parent_id ? Number(t.parent_id) : null,
+    folderId: t.folder_id ? Number(t.folder_id) : null,
     title: t.title,
     description: t.description || "",
     status: t.status,
@@ -197,13 +210,14 @@ app.get("/api/todos", requireAuth, async (req, res) => {
 
 // POST /api/todos
 app.post("/api/todos", requireAuth, async (req, res) => {
-  const { title, description, dueDate, parentId, status } = req.body;
+  const { title, description, dueDate, parentId, status, folderId } = req.body;
   if (!title || !title.trim()) return res.status(400).json({ error: "Title is required" });
 
   const sql = getSQL();
   const id = Date.now();
   const validStatus = ["pending", "in-progress", "done"].includes(status) ? status : "pending";
   const pId = parentId != null ? Number(parentId) : null;
+  const fId = folderId != null ? Number(folderId) : null;
 
   if (pId != null) {
     const rows = await sql`SELECT id FROM todos WHERE id = ${pId} AND user_id = ${req.user.id}`;
@@ -211,13 +225,14 @@ app.post("/api/todos", requireAuth, async (req, res) => {
   }
 
   await sql`
-    INSERT INTO todos (id, user_id, parent_id, title, description, status, due_date)
-    VALUES (${id}, ${req.user.id}, ${pId}, ${title.trim()}, ${(description || "").trim()}, ${validStatus}, ${dueDate || null})
+    INSERT INTO todos (id, user_id, parent_id, folder_id, title, description, status, due_date)
+    VALUES (${id}, ${req.user.id}, ${pId}, ${fId}, ${title.trim()}, ${(description || "").trim()}, ${validStatus}, ${dueDate || null})
   `;
 
   const todo = {
     id,
     parentId: pId,
+    folderId: fId,
     title: title.trim(),
     description: (description || "").trim(),
     status: validStatus,
@@ -242,9 +257,10 @@ app.put("/api/todos/:id", requireAuth, async (req, res) => {
   const description = req.body.description !== undefined ? req.body.description.trim() : (todo.description || "");
   const status = req.body.status !== undefined ? req.body.status : todo.status;
   const dueDate = req.body.dueDate !== undefined ? req.body.dueDate : todo.due_date;
+  const folderId = req.body.folderId !== undefined ? (req.body.folderId != null ? Number(req.body.folderId) : null) : (todo.folder_id || null);
 
   await sql`
-    UPDATE todos SET title = ${title}, description = ${description}, status = ${status}, due_date = ${dueDate}
+    UPDATE todos SET title = ${title}, description = ${description}, status = ${status}, due_date = ${dueDate}, folder_id = ${folderId}
     WHERE id = ${id} AND user_id = ${req.user.id}
   `;
 
@@ -253,6 +269,7 @@ app.put("/api/todos/:id", requireAuth, async (req, res) => {
   res.json({
     id,
     parentId: todo.parent_id ? Number(todo.parent_id) : null,
+    folderId: folderId ? Number(folderId) : null,
     title,
     description,
     status,
@@ -318,6 +335,108 @@ app.delete("/api/todos/:id", requireAuth, async (req, res) => {
     await sql`DELETE FROM todos WHERE id = ${id} AND user_id = ${req.user.id}`;
   }
 
+  res.status(204).end();
+});
+
+// ── Folder endpoints ──
+
+// GET /api/folders
+app.get("/api/folders", requireAuth, async (req, res) => {
+  const sql = getSQL();
+  const folders = await sql`SELECT * FROM folders WHERE user_id = ${req.user.id} ORDER BY created_at`;
+  res.json(folders.map(f => ({
+    id: Number(f.id),
+    name: f.name,
+    color: f.color
+  })));
+});
+
+// POST /api/folders
+app.post("/api/folders", requireAuth, async (req, res) => {
+  const { name, color } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: "Folder name is required" });
+
+  const sql = getSQL();
+  const id = Date.now();
+  const folderColor = color || "#6366f1";
+
+  await sql`
+    INSERT INTO folders (id, user_id, name, color)
+    VALUES (${id}, ${req.user.id}, ${name.trim()}, ${folderColor})
+  `;
+
+  res.status(201).json({ id, name: name.trim(), color: folderColor });
+});
+
+// PUT /api/folders/:id
+app.put("/api/folders/:id", requireAuth, async (req, res) => {
+  const sql = getSQL();
+  const id = Number(req.params.id);
+  const rows = await sql`SELECT * FROM folders WHERE id = ${id} AND user_id = ${req.user.id}`;
+  if (rows.length === 0) return res.status(404).json({ error: "Folder not found" });
+
+  const folder = rows[0];
+  const name = req.body.name !== undefined ? req.body.name.trim() : folder.name;
+  const color = req.body.color !== undefined ? req.body.color : folder.color;
+
+  if (!name) return res.status(400).json({ error: "Folder name is required" });
+
+  await sql`
+    UPDATE folders SET name = ${name}, color = ${color}
+    WHERE id = ${id} AND user_id = ${req.user.id}
+  `;
+
+  res.json({ id, name, color });
+});
+
+// DELETE /api/folders/:id?action=delete|move
+app.delete("/api/folders/:id", requireAuth, async (req, res) => {
+  const sql = getSQL();
+  const id = Number(req.params.id);
+  const action = req.query.action || "move"; // "delete" = delete all todos, "move" = move to default
+
+  const rows = await sql`SELECT * FROM folders WHERE id = ${id} AND user_id = ${req.user.id}`;
+  if (rows.length === 0) return res.status(404).json({ error: "Folder not found" });
+
+  if (action === "delete") {
+    // Delete all todos in this folder (and their descendants/attachments)
+    const folderTodos = await sql`SELECT id FROM todos WHERE folder_id = ${id} AND user_id = ${req.user.id}`;
+    for (const ft of folderTodos) {
+      const todoId = Number(ft.id);
+      const atts = await sql`
+        WITH RECURSIVE descendants AS (
+          SELECT id FROM todos WHERE id = ${todoId} AND user_id = ${req.user.id}
+          UNION ALL
+          SELECT t.id FROM todos t INNER JOIN descendants d ON t.parent_id = d.id
+        )
+        SELECT blob_url FROM attachments WHERE todo_id IN (SELECT id FROM descendants)
+      `;
+      for (const a of atts) {
+        try { await del(a.blob_url); } catch (e) { /* ignore */ }
+      }
+      await sql`
+        WITH RECURSIVE descendants AS (
+          SELECT id FROM todos WHERE id = ${todoId} AND user_id = ${req.user.id}
+          UNION ALL
+          SELECT t.id FROM todos t INNER JOIN descendants d ON t.parent_id = d.id
+        )
+        DELETE FROM attachments WHERE todo_id IN (SELECT id FROM descendants)
+      `;
+      await sql`
+        WITH RECURSIVE descendants AS (
+          SELECT id FROM todos WHERE id = ${todoId} AND user_id = ${req.user.id}
+          UNION ALL
+          SELECT t.id FROM todos t INNER JOIN descendants d ON t.parent_id = d.id
+        )
+        DELETE FROM todos WHERE id IN (SELECT id FROM descendants)
+      `;
+    }
+  } else {
+    // Move all todos in this folder to default (null)
+    await sql`UPDATE todos SET folder_id = NULL WHERE folder_id = ${id} AND user_id = ${req.user.id}`;
+  }
+
+  await sql`DELETE FROM folders WHERE id = ${id} AND user_id = ${req.user.id}`;
   res.status(204).end();
 });
 

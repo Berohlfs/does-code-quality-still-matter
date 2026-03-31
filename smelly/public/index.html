@@ -1538,6 +1538,216 @@
     }
 
     .avatar-dropdown-logout:hover { background: var(--danger-bg); }
+
+    /* ── Folder Sidebar ── */
+    .app-layout {
+      display: flex;
+      gap: 0;
+    }
+
+    .folder-sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      padding: 0 16px 24px 0;
+      border-right: 1px solid var(--border);
+      margin-right: 24px;
+    }
+
+    .folder-sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+
+    .folder-sidebar-header h3 {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .folder-add-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      color: var(--text-tertiary);
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: all var(--transition);
+      line-height: 1;
+    }
+
+    .folder-add-btn:hover {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .folder-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .folder-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      position: relative;
+    }
+
+    .folder-item:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .folder-item.active {
+      background: var(--accent-soft);
+      color: var(--accent-text);
+      font-weight: 600;
+    }
+
+    .folder-item .folder-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .folder-item .folder-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .folder-item .folder-count {
+      font-size: 0.6875rem;
+      color: var(--text-tertiary);
+      font-weight: 600;
+      min-width: 18px;
+      text-align: right;
+    }
+
+    .folder-item .folder-actions {
+      display: none;
+      gap: 2px;
+    }
+
+    .folder-item:hover .folder-actions {
+      display: flex;
+    }
+
+    .folder-item:hover .folder-count {
+      display: none;
+    }
+
+    .folder-actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.75rem;
+      padding: 2px 4px;
+      border-radius: 4px;
+      color: var(--text-tertiary);
+      transition: all var(--transition);
+      line-height: 1;
+    }
+
+    .folder-actions button:hover {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .folder-actions button.folder-delete-btn:hover {
+      color: var(--danger);
+    }
+
+    .app-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Folder modal */
+    .folder-color-picker {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .folder-color-option {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .folder-color-option:hover {
+      transform: scale(1.15);
+    }
+
+    .folder-color-option.selected {
+      border-color: var(--text-primary);
+      box-shadow: 0 0 0 2px var(--bg-secondary), 0 0 0 4px var(--text-tertiary);
+    }
+
+    /* Folder badge on todo cards */
+    .folder-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      padding: 1px 8px;
+      border-radius: 100px;
+      background: var(--bg-tertiary);
+      color: var(--text-tertiary);
+    }
+
+    .folder-badge .folder-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    @media (max-width: 768px) {
+      .app-layout { flex-direction: column; }
+      .folder-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        margin-right: 0;
+        margin-bottom: 16px;
+        padding: 0 0 12px 0;
+      }
+      .folder-list {
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 4px;
+        padding-bottom: 4px;
+      }
+      .folder-item {
+        white-space: nowrap;
+        flex-shrink: 0;
+        padding: 6px 12px;
+      }
+      .folder-item .folder-actions { display: none !important; }
+      .folder-item:hover .folder-count { display: inline; }
+    }
   </style>
 </head>
 <body>
@@ -1609,6 +1819,17 @@
   </header>
 
   <div class="app-shell list-view" id="appContainer" style="display:none">
+    <div class="app-layout">
+    <!-- Folder Sidebar -->
+    <nav class="folder-sidebar" id="folderSidebar">
+      <div class="folder-sidebar-header">
+        <h3>Folders</h3>
+        <button class="folder-add-btn" id="addFolderBtn" title="New folder">+</button>
+      </div>
+      <ul class="folder-list" id="folderList"></ul>
+    </nav>
+
+    <div class="app-main">
     <!-- Stats -->
     <div class="stats-bar" id="statsBar">
       <div class="stat-card">
@@ -1683,6 +1904,39 @@
         <div class="kanban-cards" data-status="done"></div>
       </div>
     </div>
+    </div><!-- /app-main -->
+    </div><!-- /app-layout -->
+  </div>
+
+  <!-- Folder Modal -->
+  <div class="modal-overlay" id="folderModalOverlay">
+    <div class="modal" style="max-width:400px">
+      <h2 id="folderModalTitle">New Folder</h2>
+      <form id="folderForm">
+        <input type="hidden" id="folderEditId">
+        <label for="folderName">Name *</label>
+        <input type="text" id="folderName" required autocomplete="off" placeholder="Folder name">
+        <label>Color</label>
+        <div class="folder-color-picker" id="folderColorPicker"></div>
+        <div class="modal-buttons">
+          <button type="button" class="btn-cancel" id="folderCancelBtn">Cancel</button>
+          <button type="submit" class="btn-save">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Folder Dialog -->
+  <div class="modal-overlay" id="deleteFolderDialogOverlay">
+    <div class="modal" style="max-width:420px">
+      <h2>Delete Folder</h2>
+      <p id="deleteFolderMsg" style="margin-bottom:20px;font-size:0.875rem;color:var(--text-secondary);line-height:1.6"></p>
+      <div class="modal-buttons" style="flex-direction:column;gap:8px">
+        <button class="btn-danger" id="deleteFolderDeleteAllBtn" style="width:100%;text-align:center">Delete folder and all tasks</button>
+        <button class="btn-warning" id="deleteFolderMoveBtn" style="width:100%;text-align:center">Move tasks to default &amp; delete folder</button>
+        <button class="btn-cancel" id="deleteFolderCancelBtn" style="width:100%;text-align:center">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal -->
@@ -1709,6 +1963,11 @@
 
         <label for="fieldDue">Due Date</label>
         <input type="date" id="fieldDue">
+
+        <label for="fieldFolder">Folder</label>
+        <select id="fieldFolder">
+          <option value="">No folder (default)</option>
+        </select>
 
         <div class="existing-attachments" id="existingAttachments" style="display:none">
           <div class="att-label">Current Attachments</div>
@@ -1849,6 +2108,8 @@
     function logout() {
       authToken = null;
       currentUser = null;
+      folders = [];
+      selectedFolderId = null;
       localStorage.removeItem("authToken");
       authScreen.style.display = "";
       appHeader.style.display = "none";
@@ -1891,6 +2152,7 @@
       appContainer.style.display = "";
       updateUserUI();
       isInitialLoad = true;
+      fetchFolders();
       fetchTodos();
     }
 
@@ -1914,6 +2176,8 @@
 
     // ── App state ──
     let todos = [];
+    let folders = [];
+    let selectedFolderId = null; // null = "All", "default" = no folder, or a folder id
     let filter = "all";
     let viewMode = "list";
     let pendingFileList = [];
@@ -2061,10 +2325,11 @@
     }
 
     function updateStats() {
-      const total = todos.length;
-      const pending = todos.filter(t => t.status === "pending").length;
-      const progress = todos.filter(t => t.status === "in-progress").length;
-      const done = todos.filter(t => t.status === "done").length;
+      const visibleTodos = getFilteredTodos();
+      const total = visibleTodos.length;
+      const pending = visibleTodos.filter(t => t.status === "pending").length;
+      const progress = visibleTodos.filter(t => t.status === "in-progress").length;
+      const done = visibleTodos.filter(t => t.status === "done").length;
       const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
       const elTotal = document.getElementById("statTotal");
@@ -2097,6 +2362,7 @@
     // ── Render ──
     function render() {
       updateStats();
+      renderFolderSidebar();
       if (viewMode === "list") renderList();
       else renderKanban();
     }
@@ -2117,6 +2383,7 @@
           <div class="todo-meta">
             ${showStatus ? `<span class="status-badge ${t.status}">${statusLabel(t.status)}</span>` : ""}
             ${t.dueDate ? `<span class="due-date ${isOverdue(t) ? "overdue" : ""}">${calendarSvg} ${formatDate(t.dueDate)}</span>` : ""}
+            ${t.folderId && selectedFolderId === null ? (() => { const f = folders.find(fd => fd.id === t.folderId); return f ? `<span class="folder-badge"><span class="folder-badge-dot" style="background:${f.color}"></span>${escapeHtml(f.name)}</span>` : ""; })() : ""}
           </div>
           ${renderAttachmentChips(t.attachments, t.id)}
         </div>
@@ -2158,8 +2425,15 @@
       return html;
     }
 
+    function getFilteredTodos() {
+      if (selectedFolderId === null) return todos;
+      if (selectedFolderId === "default") return todos.filter(t => !t.folderId);
+      return todos.filter(t => t.folderId === selectedFolderId);
+    }
+
     function renderList() {
-      const rootItems = todos.filter(t => !t.parentId || t.parentId === null);
+      const visibleTodos = getFilteredTodos();
+      const rootItems = visibleTodos.filter(t => !t.parentId || t.parentId === null);
       let filtered = rootItems;
       if (filter !== "all") {
         filtered = rootItems.filter(t => {
@@ -2223,7 +2497,8 @@
 
     function renderKanban() {
       const statuses = ["pending", "in-progress", "done"];
-      const rootTodos = todos.filter(t => !t.parentId || t.parentId === null);
+      const visibleTodos = getFilteredTodos();
+      const rootTodos = visibleTodos.filter(t => !t.parentId || t.parentId === null);
 
       for (const status of statuses) {
         const col = kanbanBoard.querySelector(`.kanban-cards[data-status="${status}"]`);
@@ -2360,6 +2635,7 @@
       pendingFileList = [];
       renderPendingFiles();
 
+      updateFolderSelect();
       if (todo) {
         modalTitle.textContent = "Edit Task";
         editId.value = todo.id;
@@ -2368,6 +2644,7 @@
         fieldDesc.value = todo.description || "";
         fieldStatus.value = todo.status;
         fieldDue.value = todo.dueDate || "";
+        fieldFolder.value = todo.folderId ? String(todo.folderId) : "";
         if (todo.parentId) {
           const parent = todos.find(t => t.id === todo.parentId);
           parentInfo.textContent = "Subtask of: " + (parent ? parent.title : "Unknown");
@@ -2393,6 +2670,12 @@
         parentIdField.value = newParentId || "";
         todoForm.reset();
         fieldStatus.value = "pending";
+        // Pre-select current folder if viewing a specific one
+        if (selectedFolderId && selectedFolderId !== "default") {
+          fieldFolder.value = String(selectedFolderId);
+        } else {
+          fieldFolder.value = "";
+        }
         existingAttachments.style.display = "none";
         if (isSubtask) {
           const parent = todos.find(t => t.id === Number(newParentId));
@@ -2436,7 +2719,8 @@
         title: fieldTitle.value.trim(),
         description: fieldDesc.value.trim(),
         status: fieldStatus.value,
-        dueDate: fieldDue.value || null
+        dueDate: fieldDue.value || null,
+        folderId: fieldFolder.value ? Number(fieldFolder.value) : null
       };
       if (!data.title) return;
 
@@ -2600,9 +2884,229 @@
     // Keyboard shortcut: Escape closes modals
     document.addEventListener("keydown", e => {
       if (e.key === "Escape") {
-        if (deleteDialogOverlay.classList.contains("open")) closeDeleteDialog();
+        if (deleteFolderDialogOverlay.classList.contains("open")) closeDeleteFolderDialog();
+        else if (deleteDialogOverlay.classList.contains("open")) closeDeleteDialog();
+        else if (folderModalOverlay.classList.contains("open")) closeFolderModal();
         else if (modalOverlay.classList.contains("open")) closeModal();
       }
+    });
+
+    // ── Folder management ──
+    const folderColors = ["#6366f1", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#8b5cf6", "#06b6d4", "#84cc16", "#f97316"];
+    const folderList = document.getElementById("folderList");
+    const folderModalOverlay = document.getElementById("folderModalOverlay");
+    const folderForm = document.getElementById("folderForm");
+    const folderModalTitle = document.getElementById("folderModalTitle");
+    const folderEditId = document.getElementById("folderEditId");
+    const folderNameInput = document.getElementById("folderName");
+    const folderColorPicker = document.getElementById("folderColorPicker");
+    const fieldFolder = document.getElementById("fieldFolder");
+    let selectedFolderColor = folderColors[0];
+
+    const deleteFolderDialogOverlay = document.getElementById("deleteFolderDialogOverlay");
+    const deleteFolderMsg = document.getElementById("deleteFolderMsg");
+    let deleteFolderTarget = null;
+
+    async function fetchFolders() {
+      try {
+        const res = await authFetch("/api/folders");
+        folders = await res.json();
+        renderFolderSidebar();
+        updateFolderSelect();
+      } catch (err) {
+        if (err.message === "Unauthorized") return;
+      }
+    }
+
+    function getFolderTodoCount(folderId) {
+      if (folderId === null) return todos.length;
+      if (folderId === "default") return todos.filter(t => !t.folderId).length;
+      return todos.filter(t => t.folderId === folderId).length;
+    }
+
+    function renderFolderSidebar() {
+      let html = `
+        <li class="folder-item ${selectedFolderId === null ? "active" : ""}" data-folder-id="all">
+          <span class="folder-dot" style="background:var(--text-tertiary)"></span>
+          <span class="folder-name">All Tasks</span>
+          <span class="folder-count">${todos.length}</span>
+        </li>
+        <li class="folder-item ${selectedFolderId === "default" ? "active" : ""}" data-folder-id="default">
+          <span class="folder-dot" style="background:var(--border-hover)"></span>
+          <span class="folder-name">Uncategorized</span>
+          <span class="folder-count">${getFolderTodoCount("default")}</span>
+        </li>
+      `;
+      for (const f of folders) {
+        html += `
+          <li class="folder-item ${selectedFolderId === f.id ? "active" : ""}" data-folder-id="${f.id}">
+            <span class="folder-dot" style="background:${f.color}"></span>
+            <span class="folder-name">${escapeHtml(f.name)}</span>
+            <span class="folder-count">${getFolderTodoCount(f.id)}</span>
+            <span class="folder-actions">
+              <button class="folder-edit-btn" data-folder-id="${f.id}" title="Edit">&#9998;</button>
+              <button class="folder-delete-btn" data-folder-id="${f.id}" title="Delete">&#10005;</button>
+            </span>
+          </li>
+        `;
+      }
+      folderList.innerHTML = html;
+    }
+
+    function updateFolderSelect() {
+      const currentVal = fieldFolder.value;
+      fieldFolder.innerHTML = `<option value="">No folder (default)</option>` +
+        folders.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join("");
+      fieldFolder.value = currentVal;
+    }
+
+    function renderFolderColorPicker(selected) {
+      folderColorPicker.innerHTML = folderColors.map(c =>
+        `<div class="folder-color-option ${c === selected ? "selected" : ""}" data-color="${c}" style="background:${c}"></div>`
+      ).join("");
+    }
+
+    folderColorPicker.addEventListener("click", e => {
+      const opt = e.target.closest(".folder-color-option");
+      if (!opt) return;
+      selectedFolderColor = opt.dataset.color;
+      folderColorPicker.querySelectorAll(".folder-color-option").forEach(el => el.classList.remove("selected"));
+      opt.classList.add("selected");
+    });
+
+    // Folder sidebar clicks
+    folderList.addEventListener("click", e => {
+      const editBtn = e.target.closest(".folder-edit-btn");
+      if (editBtn) {
+        const folder = folders.find(f => f.id === Number(editBtn.dataset.folderId));
+        if (folder) openFolderModal(folder);
+        return;
+      }
+
+      const deleteBtn = e.target.closest(".folder-delete-btn");
+      if (deleteBtn) {
+        const folder = folders.find(f => f.id === Number(deleteBtn.dataset.folderId));
+        if (folder) showDeleteFolderDialog(folder);
+        return;
+      }
+
+      const item = e.target.closest(".folder-item");
+      if (!item) return;
+      const fid = item.dataset.folderId;
+      if (fid === "all") selectedFolderId = null;
+      else if (fid === "default") selectedFolderId = "default";
+      else selectedFolderId = Number(fid);
+      renderFolderSidebar();
+      render();
+    });
+
+    // Add folder button
+    document.getElementById("addFolderBtn").addEventListener("click", () => openFolderModal(null));
+
+    function openFolderModal(folder) {
+      if (folder) {
+        folderModalTitle.textContent = "Edit Folder";
+        folderEditId.value = folder.id;
+        folderNameInput.value = folder.name;
+        selectedFolderColor = folder.color;
+      } else {
+        folderModalTitle.textContent = "New Folder";
+        folderEditId.value = "";
+        folderNameInput.value = "";
+        selectedFolderColor = folderColors[0];
+      }
+      renderFolderColorPicker(selectedFolderColor);
+      folderModalOverlay.classList.add("open");
+      folderNameInput.focus();
+    }
+
+    function closeFolderModal() { folderModalOverlay.classList.remove("open"); }
+    document.getElementById("folderCancelBtn").addEventListener("click", closeFolderModal);
+    folderModalOverlay.addEventListener("click", e => { if (e.target === folderModalOverlay) closeFolderModal(); });
+
+    folderForm.addEventListener("submit", async e => {
+      e.preventDefault();
+      const name = folderNameInput.value.trim();
+      if (!name) return;
+      const saveBtn = folderForm.querySelector(".btn-save");
+      const orig = saveBtn.textContent;
+      saveBtn.classList.add("loading");
+      saveBtn.innerHTML = `<span class="btn-spinner"></span>Saving...`;
+      try {
+        const id = folderEditId.value;
+        if (id) {
+          await authFetch(`/api/folders/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, color: selectedFolderColor })
+          });
+          showToast("Folder updated", "success");
+        } else {
+          await authFetch("/api/folders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, color: selectedFolderColor })
+          });
+          showToast("Folder created", "success");
+        }
+        closeFolderModal();
+        await fetchFolders();
+      } catch { showToast("Failed to save folder", "error"); }
+      finally { saveBtn.classList.remove("loading"); saveBtn.textContent = orig; }
+    });
+
+    // Delete folder dialog
+    function showDeleteFolderDialog(folder) {
+      deleteFolderTarget = folder;
+      const count = getFolderTodoCount(folder.id);
+      deleteFolderMsg.innerHTML = `<strong>${escapeHtml(folder.name)}</strong> contains ${count} task${count !== 1 ? "s" : ""}.<br><br>` +
+        `<strong>Delete all</strong> removes the folder and all its tasks.<br>` +
+        `<strong>Move tasks</strong> moves them to the default folder before deleting.`;
+      deleteFolderDialogOverlay.classList.add("open");
+    }
+
+    function closeDeleteFolderDialog() {
+      deleteFolderDialogOverlay.classList.remove("open");
+      deleteFolderTarget = null;
+    }
+
+    document.getElementById("deleteFolderDeleteAllBtn").addEventListener("click", async () => {
+      if (!deleteFolderTarget) return;
+      const btn = document.getElementById("deleteFolderDeleteAllBtn");
+      const orig = btn.textContent;
+      btn.classList.add("loading");
+      btn.innerHTML = `<span class="btn-spinner"></span>Deleting...`;
+      try {
+        await authFetch(`/api/folders/${deleteFolderTarget.id}?action=delete`, { method: "DELETE" });
+        closeDeleteFolderDialog();
+        if (selectedFolderId === deleteFolderTarget.id) selectedFolderId = null;
+        showToast("Folder and tasks deleted", "success");
+        await fetchFolders();
+        await fetchTodos();
+      } catch { showToast("Delete failed", "error"); }
+      finally { btn.classList.remove("loading"); btn.textContent = orig; }
+    });
+
+    document.getElementById("deleteFolderMoveBtn").addEventListener("click", async () => {
+      if (!deleteFolderTarget) return;
+      const btn = document.getElementById("deleteFolderMoveBtn");
+      const orig = btn.textContent;
+      btn.classList.add("loading");
+      btn.innerHTML = `<span class="btn-spinner"></span>Moving...`;
+      try {
+        await authFetch(`/api/folders/${deleteFolderTarget.id}?action=move`, { method: "DELETE" });
+        closeDeleteFolderDialog();
+        if (selectedFolderId === deleteFolderTarget.id) selectedFolderId = null;
+        showToast("Tasks moved, folder deleted", "success");
+        await fetchFolders();
+        await fetchTodos();
+      } catch { showToast("Delete failed", "error"); }
+      finally { btn.classList.remove("loading"); btn.textContent = orig; }
+    });
+
+    document.getElementById("deleteFolderCancelBtn").addEventListener("click", closeDeleteFolderDialog);
+    deleteFolderDialogOverlay.addEventListener("click", e => {
+      if (e.target === deleteFolderDialogOverlay) closeDeleteFolderDialog();
     });
 
     // Start the app
