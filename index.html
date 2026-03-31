@@ -755,6 +755,43 @@
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
+    @keyframes cardEnter {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes statPop {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.12); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+
+    @keyframes spinIn {
+      from { opacity: 0; transform: rotate(-90deg) scale(0.8); }
+      to { opacity: 1; transform: rotate(0) scale(1); }
+    }
+
+    @keyframes pulseRing {
+      0% { box-shadow: 0 0 0 0 rgba(99,102,241,0.3); }
+      70% { box-shadow: 0 0 0 8px rgba(99,102,241,0); }
+      100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+    }
+
+    @keyframes checkmark {
+      0% { stroke-dashoffset: 20; }
+      100% { stroke-dashoffset: 0; }
+    }
+
+    @keyframes subtleBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
+    }
+
     .modal {
       background: var(--bg-secondary);
       border: 1px solid var(--border);
@@ -911,6 +948,235 @@
 
     .btn-warning { background: var(--pending); color: #fff; }
     .btn-warning:hover { opacity: 0.9; }
+
+    /* ── Animations ── */
+    .todo-item, .kanban-card {
+      animation: cardEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .todo-list .todo-item:nth-child(1) { animation-delay: 0ms; }
+    .todo-list .todo-item:nth-child(2) { animation-delay: 40ms; }
+    .todo-list .todo-item:nth-child(3) { animation-delay: 80ms; }
+    .todo-list .todo-item:nth-child(4) { animation-delay: 120ms; }
+    .todo-list .todo-item:nth-child(5) { animation-delay: 160ms; }
+    .todo-list .todo-item:nth-child(6) { animation-delay: 200ms; }
+    .todo-list .todo-item:nth-child(7) { animation-delay: 240ms; }
+    .todo-list .todo-item:nth-child(8) { animation-delay: 280ms; }
+    .todo-list .todo-item:nth-child(n+9) { animation-delay: 300ms; }
+
+    .kanban-cards .kanban-card:nth-child(1) { animation-delay: 0ms; }
+    .kanban-cards .kanban-card:nth-child(2) { animation-delay: 50ms; }
+    .kanban-cards .kanban-card:nth-child(3) { animation-delay: 100ms; }
+    .kanban-cards .kanban-card:nth-child(4) { animation-delay: 150ms; }
+    .kanban-cards .kanban-card:nth-child(n+5) { animation-delay: 200ms; }
+
+    .stat-value.pop { animation: statPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+    .theme-toggle .theme-icon-anim { animation: spinIn 0.35s cubic-bezier(0.22, 1, 0.36, 1); display: inline-block; }
+
+    .add-btn:active { animation: pulseRing 0.5s ease-out; }
+
+    .status-badge {
+      transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .todo-item:active {
+      transform: scale(0.995);
+    }
+
+    .kanban-card.dragging {
+      transform: rotate(2deg) scale(1.02);
+      transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
+    }
+
+    .kanban-cards.drag-over {
+      outline: 2px dashed var(--accent);
+      outline-offset: -2px;
+      transition: background 0.2s, outline 0.2s;
+    }
+
+    .toggle-children {
+      transition: all var(--transition), transform 0.2s;
+    }
+
+    .toggle-children:active {
+      transform: scale(0.9);
+    }
+
+    .segmented-control button.active {
+      transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .modal-overlay.open .modal {
+      animation: slideUp 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .btn-save, .btn-danger, .btn-warning, .btn-cancel {
+      transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .btn-save:active, .btn-danger:active, .btn-warning:active {
+      transform: scale(0.97);
+    }
+
+    .att-chip {
+      animation: cardEnter 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .pending-file {
+      animation: cardEnter 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .progress-fill {
+      transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .empty {
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .file-drop-zone {
+      transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .file-drop-zone.dragover {
+      transform: scale(1.01);
+    }
+
+    /* ── Loading Skeleton ── */
+    .skeleton-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .skeleton-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      animation: cardEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .skeleton-card:nth-child(2) { animation-delay: 60ms; }
+    .skeleton-card:nth-child(3) { animation-delay: 120ms; }
+
+    .skeleton-line {
+      height: 14px;
+      border-radius: 6px;
+      background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--border) 37%, var(--bg-tertiary) 63%);
+      background-size: 800px 100%;
+      animation: shimmer 1.5s infinite linear;
+    }
+
+    .skeleton-line.title { width: 55%; height: 16px; margin-bottom: 10px; }
+    .skeleton-line.desc { width: 80%; margin-bottom: 8px; }
+    .skeleton-line.meta { width: 30%; height: 12px; }
+
+    .skeleton-stats {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .skeleton-stat {
+      flex: 1;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      animation: cardEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .skeleton-stat:nth-child(2) { animation-delay: 50ms; }
+    .skeleton-stat:nth-child(3) { animation-delay: 100ms; }
+    .skeleton-stat:nth-child(4) { animation-delay: 150ms; }
+
+    .skeleton-stat-val {
+      width: 32px;
+      height: 24px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--border) 37%, var(--bg-tertiary) 63%);
+      background-size: 800px 100%;
+      animation: shimmer 1.5s infinite linear;
+    }
+
+    .skeleton-stat-label {
+      width: 60px;
+      height: 10px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--border) 37%, var(--bg-tertiary) 63%);
+      background-size: 800px 100%;
+      animation: shimmer 1.5s infinite linear;
+    }
+
+    /* ── Inline spinner for save button ── */
+    .btn-save.loading, .btn-danger.loading, .btn-warning.loading {
+      pointer-events: none;
+      opacity: 0.75;
+      position: relative;
+    }
+
+    .btn-spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.5s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── Toast notification ── */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
+      box-shadow: var(--shadow-lg);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: toastIn 0.35s cubic-bezier(0.22, 1, 0.36, 1), toastOut 0.3s ease-in 2.5s forwards;
+      pointer-events: auto;
+    }
+
+    .toast.success { border-left: 3px solid var(--done); }
+    .toast.error { border-left: 3px solid var(--danger); }
+    .toast.info { border-left: 3px solid var(--accent); }
+
+    .toast-icon { font-size: 1rem; flex-shrink: 0; }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(20px) scale(0.95); }
+      to { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateX(0); }
+      to { opacity: 0; transform: translateX(20px); }
+    }
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
@@ -1086,6 +1352,9 @@
     </div>
   </div>
 
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
   <script>
     let todos = [];
     let filter = "all";
@@ -1116,7 +1385,11 @@
     // ── Theme ──
     function setTheme(theme) {
       document.documentElement.setAttribute("data-theme", theme);
-      document.getElementById("themeIcon").innerHTML = theme === "dark" ? "&#9728;" : "&#9790;";
+      const icon = document.getElementById("themeIcon");
+      icon.classList.remove("theme-icon-anim");
+      void icon.offsetWidth;
+      icon.innerHTML = theme === "dark" ? "&#9728;" : "&#9790;";
+      icon.classList.add("theme-icon-anim");
       localStorage.setItem("theme", theme);
     }
 
@@ -1130,11 +1403,56 @@
       (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     setTheme(savedTheme);
 
+    // ── Toast notifications ──
+    function showToast(message, type = "success") {
+      const container = document.getElementById("toastContainer");
+      const icons = { success: "&#10003;", error: "&#10007;", info: "&#8505;" };
+      const toast = document.createElement("div");
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span>${escapeHtml(message)}`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // ── Loading skeletons ──
+    function showLoadingSkeleton() {
+      const statsBar = document.getElementById("statsBar");
+      statsBar.innerHTML = `<div class="skeleton-stats">
+        <div class="skeleton-stat"><div class="skeleton-stat-val"></div><div class="skeleton-stat-label"></div></div>
+        <div class="skeleton-stat"><div class="skeleton-stat-val"></div><div class="skeleton-stat-label"></div></div>
+        <div class="skeleton-stat"><div class="skeleton-stat-val"></div><div class="skeleton-stat-label"></div></div>
+        <div class="skeleton-stat"><div class="skeleton-stat-val"></div><div class="skeleton-stat-label"></div></div>
+      </div>`;
+      todoList.innerHTML = `<div class="skeleton-container">
+        <div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line desc"></div><div class="skeleton-line meta"></div></div>
+        <div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line desc"></div><div class="skeleton-line meta"></div></div>
+        <div class="skeleton-card"><div class="skeleton-line title"></div><div class="skeleton-line desc"></div><div class="skeleton-line meta"></div></div>
+      </div>`;
+    }
+
+    function restoreStatsBar() {
+      document.getElementById("statsBar").innerHTML = `
+        <div class="stat-card"><div class="stat-value total-val" id="statTotal">0</div><div class="stat-label">Total</div></div>
+        <div class="stat-card"><div class="stat-value pending-val" id="statPending">0</div><div class="stat-label">Pending</div></div>
+        <div class="stat-card"><div class="stat-value progress-val" id="statProgress">0</div><div class="stat-label">In Progress</div></div>
+        <div class="stat-card"><div class="stat-value done-val" id="statDone">0</div><div class="stat-label">Completed</div><div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div></div>
+      `;
+    }
+
+    let isInitialLoad = true;
+
     // ── Data helpers ──
     async function fetchTodos() {
-      const res = await fetch("/api/todos");
-      todos = await res.json();
-      render();
+      if (isInitialLoad) showLoadingSkeleton();
+      try {
+        const res = await fetch("/api/todos");
+        todos = await res.json();
+        if (isInitialLoad) { restoreStatsBar(); isInitialLoad = false; }
+        render();
+      } catch (err) {
+        if (isInitialLoad) { restoreStatsBar(); isInitialLoad = false; }
+        showToast("Failed to load tasks", "error");
+      }
     }
 
     function getChildren(parentId) {
@@ -1175,6 +1493,15 @@
       return s === "in-progress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1);
     }
 
+    function animateStatValue(el, newVal) {
+      const oldVal = parseInt(el.textContent) || 0;
+      if (oldVal === newVal) return;
+      el.textContent = newVal;
+      el.classList.remove("pop");
+      void el.offsetWidth; // force reflow
+      el.classList.add("pop");
+    }
+
     function updateStats() {
       const total = todos.length;
       const pending = todos.filter(t => t.status === "pending").length;
@@ -1182,11 +1509,17 @@
       const done = todos.filter(t => t.status === "done").length;
       const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
-      document.getElementById("statTotal").textContent = total;
-      document.getElementById("statPending").textContent = pending;
-      document.getElementById("statProgress").textContent = progress;
-      document.getElementById("statDone").textContent = done;
-      document.getElementById("progressFill").style.width = pct + "%";
+      const elTotal = document.getElementById("statTotal");
+      const elPending = document.getElementById("statPending");
+      const elProgress = document.getElementById("statProgress");
+      const elDone = document.getElementById("statDone");
+      const elFill = document.getElementById("progressFill");
+
+      if (elTotal) animateStatValue(elTotal, total);
+      if (elPending) animateStatValue(elPending, pending);
+      if (elProgress) animateStatValue(elProgress, progress);
+      if (elDone) animateStatValue(elDone, done);
+      if (elFill) elFill.style.width = pct + "%";
 
       const filterLabels = { all: "All Tasks", pending: "Pending Tasks", "in-progress": "In Progress", done: "Completed" };
       document.getElementById("toolbarLabel").textContent = filterLabels[filter] || "All Tasks";
@@ -1410,12 +1743,16 @@
       zone.classList.remove("drag-over");
       const id = e.dataTransfer.getData("text/plain");
       const newStatus = zone.dataset.status;
-      await fetch(`/api/todos/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus })
-      });
-      await fetchTodos();
+      try {
+        await fetch(`/api/todos/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus })
+        });
+        const labels = { pending: "Pending", "in-progress": "In Progress", done: "Done" };
+        showToast(`Moved to ${labels[newStatus]}`, "info");
+        await fetchTodos();
+      } catch { showToast("Failed to update status", "error"); }
     });
 
     // ── File Drop Zone ──
@@ -1539,30 +1876,43 @@
       };
       if (!data.title) return;
 
-      const id = editId.value;
-      let todoId;
-      if (id) {
-        await fetch(`/api/todos/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        todoId = id;
-      } else {
-        const pId = parentIdField.value;
-        if (pId) data.parentId = Number(pId);
-        const res = await fetch("/api/todos", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        const created = await res.json();
-        todoId = created.id;
-      }
+      const saveBtn = todoForm.querySelector(".btn-save");
+      const originalText = saveBtn.textContent;
+      saveBtn.classList.add("loading");
+      saveBtn.innerHTML = `<span class="btn-spinner"></span>Saving...`;
 
-      await uploadFiles(todoId);
-      closeModal();
-      await fetchTodos();
+      try {
+        const id = editId.value;
+        let todoId;
+        if (id) {
+          await fetch(`/api/todos/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+          });
+          todoId = id;
+        } else {
+          const pId = parentIdField.value;
+          if (pId) data.parentId = Number(pId);
+          const res = await fetch("/api/todos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+          });
+          const created = await res.json();
+          todoId = created.id;
+        }
+
+        await uploadFiles(todoId);
+        closeModal();
+        showToast(id ? "Task updated" : "Task created", "success");
+        await fetchTodos();
+      } catch (err) {
+        showToast("Something went wrong", "error");
+      } finally {
+        saveBtn.classList.remove("loading");
+        saveBtn.textContent = originalText;
+      }
     });
 
     // ── Filters (list view) ──
@@ -1595,16 +1945,32 @@
 
     document.getElementById("deleteCascadeBtn").addEventListener("click", async () => {
       if (!deleteDialogTodo) return;
-      await fetch(`/api/todos/${deleteDialogTodo.id}?cascade=true`, { method: "DELETE" });
-      closeDeleteDialog();
-      await fetchTodos();
+      const btn = document.getElementById("deleteCascadeBtn");
+      const orig = btn.textContent;
+      btn.classList.add("loading");
+      btn.innerHTML = `<span class="btn-spinner"></span>Deleting...`;
+      try {
+        await fetch(`/api/todos/${deleteDialogTodo.id}?cascade=true`, { method: "DELETE" });
+        closeDeleteDialog();
+        showToast("Task and subtasks deleted", "success");
+        await fetchTodos();
+      } catch { showToast("Delete failed", "error"); }
+      finally { btn.classList.remove("loading"); btn.textContent = orig; }
     });
 
     document.getElementById("deleteReparentBtn").addEventListener("click", async () => {
       if (!deleteDialogTodo) return;
-      await fetch(`/api/todos/${deleteDialogTodo.id}?cascade=false`, { method: "DELETE" });
-      closeDeleteDialog();
-      await fetchTodos();
+      const btn = document.getElementById("deleteReparentBtn");
+      const orig = btn.textContent;
+      btn.classList.add("loading");
+      btn.innerHTML = `<span class="btn-spinner"></span>Deleting...`;
+      try {
+        await fetch(`/api/todos/${deleteDialogTodo.id}?cascade=false`, { method: "DELETE" });
+        closeDeleteDialog();
+        showToast("Task deleted, subtasks kept", "success");
+        await fetchTodos();
+      } catch { showToast("Delete failed", "error"); }
+      finally { btn.classList.remove("loading"); btn.textContent = orig; }
     });
 
     document.getElementById("deleteCancelBtn").addEventListener("click", closeDeleteDialog);
@@ -1650,8 +2016,11 @@
           if (children.length > 0) {
             showDeleteDialog(todo);
           } else {
-            await fetch(`/api/todos/${id}`, { method: "DELETE" });
-            await fetchTodos();
+            try {
+              await fetch(`/api/todos/${id}`, { method: "DELETE" });
+              showToast("Task deleted", "success");
+              await fetchTodos();
+            } catch { showToast("Delete failed", "error"); }
           }
         }
 
