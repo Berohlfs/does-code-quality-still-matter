@@ -1,0 +1,51 @@
+import { NextResponse } from "next/server";
+import { hash } from "@node-rs/argon2";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { users } from "@/db/schemas";
+import { signToken, setAuthCookie } from "@/lib/auth";
+import { signUpSchema } from "@/lib/schemas";
+
+export async function POST(request: Request) {
+  const body = await request.json();
+  const result = signUpSchema.safeParse(body);
+
+  if (!result.success) {
+    return NextResponse.json(
+      { error: result.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+
+  const { name, email, password } = result.data;
+  const normalizedEmail = email.toLowerCase();
+
+  const existing = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, normalizedEmail))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return NextResponse.json(
+      { error: "Email already in use" },
+      { status: 409 }
+    );
+  }
+
+  const id = Date.now();
+  const passwordHash = await hash(password);
+
+  await db.insert(users).values({
+    id,
+    name,
+    email: normalizedEmail,
+    passwordHash,
+  });
+
+  const user = { id, name, email: normalizedEmail };
+  const token = await signToken(user);
+  await setAuthCookie(token);
+
+  return NextResponse.json({ user }, { status: 201 });
+}
