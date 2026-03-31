@@ -3,6 +3,37 @@ const multer = require("multer");
 const crypto = require("crypto");
 const { neon } = require("@neondatabase/serverless");
 const { put, del } = require("@vercel/blob");
+const nodemailer = require("nodemailer");
+
+const mailTransporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: process.env.SMTP_SECURE === "true",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+async function sendNewTodoEmail(todo) {
+  try {
+    await mailTransporter.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: "berohlfs@gmail.com",
+      subject: `New Todo: ${todo.title}`,
+      text: [
+        `A new todo item was added.`,
+        ``,
+        `Title: ${todo.title}`,
+        `Description: ${todo.description || "(none)"}`,
+        `Status: ${todo.status}`,
+        `Due Date: ${todo.dueDate || "(none)"}`,
+      ].join("\n"),
+    });
+  } catch (err) {
+    console.error("Failed to send todo email notification:", err.message);
+  }
+}
 
 const app = express();
 app.use(express.json());
@@ -103,7 +134,7 @@ app.post("/api/todos", async (req, res) => {
     VALUES (${id}, ${pId}, ${title.trim()}, ${(description || "").trim()}, ${validStatus}, ${dueDate || null})
   `;
 
-  res.status(201).json({
+  const todo = {
     id,
     parentId: pId,
     title: title.trim(),
@@ -111,7 +142,11 @@ app.post("/api/todos", async (req, res) => {
     status: validStatus,
     dueDate: dueDate || null,
     attachments: []
-  });
+  };
+
+  sendNewTodoEmail(todo);
+
+  res.status(201).json(todo);
 });
 
 // PUT /api/todos/:id
