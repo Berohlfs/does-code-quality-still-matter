@@ -1,23 +1,30 @@
 import { NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
-import { db } from "@/db";
+import { db } from "@/db/client";
 import { notes } from "@/db/schemas";
-import { getRequestUser } from "@/lib/request";
-import { updateNoteSchema } from "@/lib/schemas";
+import { getRequestUser } from "@/app/api/_helpers/request";
+import { noteParamsDto, updateNoteBodyDto, type NoteDto } from "@/dto/note";
 
 type Params = Promise<{ id: string }>;
 
 export async function PUT(request: Request, { params }: { params: Params }) {
   const user = await getRequestUser();
-  const { id: idStr } = await params;
-  const id = Number(idStr);
+  const rawParams = await params;
+
+  const paramsResult = noteParamsDto.safeParse(rawParams);
+  if (!paramsResult.success) {
+    return NextResponse.json(
+      { error: paramsResult.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+  const id = Number(paramsResult.data.id);
 
   const body = await request.json();
-  const result = updateNoteSchema.safeParse(body);
-
-  if (!result.success) {
+  const bodyResult = updateNoteBodyDto.safeParse(body);
+  if (!bodyResult.success) {
     return NextResponse.json(
-      { error: result.error.issues[0].message },
+      { error: bodyResult.error.issues[0].message },
       { status: 400 }
     );
   }
@@ -33,7 +40,7 @@ export async function PUT(request: Request, { params }: { params: Params }) {
   }
 
   const existing = rows[0];
-  const updates = result.data;
+  const updates = bodyResult.data;
 
   const title = updates.title ?? existing.title;
   const content = updates.content ?? existing.content ?? "";
@@ -44,13 +51,15 @@ export async function PUT(request: Request, { params }: { params: Params }) {
     .set({ title, content, updatedAt: now })
     .where(and(eq(notes.id, id), eq(notes.userId, user.id)));
 
-  return NextResponse.json({
+  const response: NoteDto = {
     id,
     title,
     content,
-    createdAt: existing.createdAt,
+    createdAt: existing.createdAt!,
     updatedAt: now,
-  });
+  };
+
+  return NextResponse.json(response);
 }
 
 export async function DELETE(
@@ -58,8 +67,16 @@ export async function DELETE(
   { params }: { params: Params }
 ) {
   const user = await getRequestUser();
-  const { id: idStr } = await params;
-  const id = Number(idStr);
+  const rawParams = await params;
+
+  const paramsResult = noteParamsDto.safeParse(rawParams);
+  if (!paramsResult.success) {
+    return NextResponse.json(
+      { error: paramsResult.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+  const id = Number(paramsResult.data.id);
 
   const rows = await db
     .select({ id: notes.id })

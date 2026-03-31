@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { eq, inArray } from "drizzle-orm";
-import { db } from "@/db";
+import { db } from "@/db/client";
 import { todos, attachments } from "@/db/schemas";
-import { getRequestUser } from "@/lib/request";
-import { createTodoSchema } from "@/lib/schemas";
-import { sendNewTodoEmail } from "@/lib/email";
+import { getRequestUser } from "@/app/api/_helpers/request";
+import { createTodoBodyDto, type TodoDto } from "@/dto/todo";
+import { emailProvider } from "@/providers/email";
 
 export async function GET() {
   const user = await getRequestUser();
@@ -25,12 +25,12 @@ export async function GET() {
           .where(inArray(attachments.todoId, todoIds))
       : [];
 
-  const result = rows.map((t) => ({
+  const result: TodoDto[] = rows.map((t) => ({
     id: t.id,
     parentId: t.parentId,
     title: t.title,
     description: t.description ?? "",
-    status: t.status,
+    status: (t.status ?? "pending") as TodoDto["status"],
     dueDate: t.dueDate,
     attachments: atts
       .filter((a) => a.todoId === t.id)
@@ -48,7 +48,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getRequestUser();
   const body = await request.json();
-  const result = createTodoSchema.safeParse(body);
+  const result = createTodoBodyDto.safeParse(body);
 
   if (!result.success) {
     return NextResponse.json(
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
     dueDate: dueDate ?? null,
   });
 
-  const todo = {
+  const todo: TodoDto = {
     id,
     parentId: parentId ?? null,
     title,
@@ -96,7 +96,18 @@ export async function POST(request: Request) {
     attachments: [],
   };
 
-  sendNewTodoEmail(todo, user.email);
+  emailProvider.sendMail({
+    to: user.email,
+    subject: `New Todo: ${todo.title}`,
+    text: [
+      "A new todo item was added.",
+      "",
+      `Title: ${todo.title}`,
+      `Description: ${todo.description || "(none)"}`,
+      `Status: ${todo.status}`,
+      `Due Date: ${todo.dueDate || "(none)"}`,
+    ].join("\n"),
+  });
 
   return NextResponse.json(todo, { status: 201 });
 }

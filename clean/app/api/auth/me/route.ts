@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { db } from "@/db";
+import { db } from "@/db/client";
 import { users } from "@/db/schemas";
-import { getRequestUser } from "@/lib/request";
+import { getRequestUser } from "@/app/api/_helpers/request";
+import type { UserDto } from "@/dto/user";
 
 export async function GET() {
   const authUser = await getRequestUser();
@@ -17,5 +18,5 @@ export async function GET() {
     return NextResponse.json({ error: "User not found" }, { status: 401 });
   }
 
-  return NextResponse.json(rows[0]);
+  return NextResponse.json(rows[0] satisfies UserDto);
 }

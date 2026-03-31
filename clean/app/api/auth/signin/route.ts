@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { verify } from "@node-rs/argon2";
 import { eq } from "drizzle-orm";
-import { db } from "@/db";
+import { db } from "@/db/client";
 import { users } from "@/db/schemas";
-import { signToken, setAuthCookie } from "@/lib/auth";
-import { signInSchema } from "@/lib/schemas";
+import { signToken, setAuthCookie } from "@/app/api/auth/_helpers/jwt";
+import { signInSchema } from "@/app/(auth)/sign-in/_validations/sign-in-schema";
+import type { AuthResponseDto } from "@/dto/user";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -46,5 +47,5 @@ export async function POST(request: Request) {
   const token = await signToken(userData);
   await setAuthCookie(token);
 
-  return NextResponse.json({ user: userData });
+  return NextResponse.json({ user: userData } satisfies AuthResponseDto);
 }

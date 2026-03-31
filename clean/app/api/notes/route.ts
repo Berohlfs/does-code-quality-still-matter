@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { eq, desc } from "drizzle-orm";
-import { db } from "@/db";
+import { db } from "@/db/client";
 import { notes } from "@/db/schemas";
-import { getRequestUser } from "@/lib/request";
-import { createNoteSchema } from "@/lib/schemas";
+import { getRequestUser } from "@/app/api/_helpers/request";
+import { createNoteBodyDto, type NoteDto } from "@/dto/note";
 
 export async function GET() {
   const user = await getRequestUser();
@@ -14,21 +14,21 @@ export async function GET() {
     .where(eq(notes.userId, user.id))
     .orderBy(desc(notes.updatedAt));
 
-  return NextResponse.json(
-    rows.map((n) => ({
-      id: n.id,
-      title: n.title,
-      content: n.content ?? "",
-      createdAt: n.createdAt,
-      updatedAt: n.updatedAt,
-    }))
-  );
+  const result: NoteDto[] = rows.map((n) => ({
+    id: n.id,
+    title: n.title,
+    content: n.content ?? "",
+    createdAt: n.createdAt!,
+    updatedAt: n.updatedAt!,
+  }));
+
+  return NextResponse.json(result);
 }
 
 export async function POST(request: Request) {
   const user = await getRequestUser();
   const body = await request.json();
-  const result = createNoteSchema.safeParse(body);
+  const result = createNoteBodyDto.safeParse(body);
 
   if (!result.success) {
     return NextResponse.json(
@@ -48,8 +48,13 @@ export async function POST(request: Request) {
     content: content ?? "",
   });
 
-  return NextResponse.json(
-    { id, title, content: content ?? "", createdAt: now, updatedAt: now },
-    { status: 201 }
-  );
+  const response: NoteDto = {
+    id,
+    title,
+    content: content ?? "",
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  return NextResponse.json(response, { status: 201 });
 }

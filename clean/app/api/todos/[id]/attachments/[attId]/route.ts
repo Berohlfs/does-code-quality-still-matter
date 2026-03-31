@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import { del } from "@vercel/blob";
-import { db } from "@/db";
+import { db } from "@/db/client";
 import { todos, attachments } from "@/db/schemas";
-import { getRequestUser } from "@/lib/request";
+import { getRequestUser } from "@/app/api/_helpers/request";
+import { attachmentParamsDto } from "@/dto/todo";
 
 type Params = Promise<{ id: string; attId: string }>;
 
@@ -12,8 +13,18 @@ export async function DELETE(
   { params }: { params: Params }
 ) {
   const user = await getRequestUser();
-  const { id: idStr, attId } = await params;
-  const todoId = Number(idStr);
+  const rawParams = await params;
+
+  const paramsResult = attachmentParamsDto.safeParse(rawParams);
+  if (!paramsResult.success) {
+    return NextResponse.json(
+      { error: paramsResult.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+
+  const todoId = Number(paramsResult.data.id);
+  const { attId } = paramsResult.data;
 
   const todoRows = await db
     .select({ id: todos.id })

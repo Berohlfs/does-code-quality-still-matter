@@ -1,24 +1,36 @@
 import { NextResponse } from "next/server";
 import { eq, and, sql } from "drizzle-orm";
 import { del } from "@vercel/blob";
-import { db } from "@/db";
+import { db } from "@/db/client";
 import { todos, attachments } from "@/db/schemas";
-import { getRequestUser } from "@/lib/request";
-import { updateTodoSchema } from "@/lib/schemas";
+import { getRequestUser } from "@/app/api/_helpers/request";
+import {
+  todoParamsDto,
+  updateTodoBodyDto,
+  deleteTodoQueryDto,
+  type TodoDto,
+} from "@/dto/todo";
 
 type Params = Promise<{ id: string }>;
 
 export async function PUT(request: Request, { params }: { params: Params }) {
   const user = await getRequestUser();
-  const { id: idStr } = await params;
-  const id = Number(idStr);
+  const rawParams = await params;
+
+  const paramsResult = todoParamsDto.safeParse(rawParams);
+  if (!paramsResult.success) {
+    return NextResponse.json(
+      { error: paramsResult.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+  const id = Number(paramsResult.data.id);
 
   const body = await request.json();
-  const result = updateTodoSchema.safeParse(body);
-
-  if (!result.success) {
+  const bodyResult = updateTodoBodyDto.safeParse(body);
+  if (!bodyResult.success) {
     return NextResponse.json(
-      { error: result.error.issues[0].message },
+      { error: bodyResult.error.issues[0].message },
       { status: 400 }
     );
   }
@@ -34,12 +46,13 @@ export async function PUT(request: Request, { params }: { params: Params }) {
   }
 
   const existing = rows[0];
-  const updates = result.data;
+  const updates = bodyResult.data;
 
   const title = updates.title ?? existing.title;
   const description = updates.description ?? existing.description ?? "";
   const status = updates.status ?? existing.status;
-  const dueDate = updates.dueDate !== undefined ? updates.dueDate : existing.dueDate;
+  const dueDate =
+    updates.dueDate !== undefined ? updates.dueDate : existing.dueDate;
 
   await db
     .update(todos)
@@ -51,12 +64,12 @@ export async function PUT(request: Request, { params }: { params: Params }) {
     .from(attachments)
     .where(eq(attachments.todoId, id));
 
-  return NextResponse.json({
+  const response: TodoDto = {
     id,
     parentId: existing.parentId,
     title,
     description,
-    status,
+    status: status as TodoDto["status"],
     dueDate,
     attachments: atts.map((a) => ({
       id: a.id,
@@ -64,7 +77,9 @@ export async function PUT(request: Request, { params }: { params: Params }) {
       originalName: a.originalName,
       size: a.size,
     })),
-  });
+  };
+
+  return NextResponse.json(response);
 }
 
 export async function DELETE(
@@ -72,10 +87,24 @@ export async function DELETE(
   { params }: { params: Params }
 ) {
   const user = await getRequestUser();
-  const { id: idStr } = await params;
-  const id = Number(idStr);
+  const rawParams = await params;
+
+  const paramsResult = todoParamsDto.safeParse(rawParams);
+  if (!paramsResult.success) {
+    return NextResponse.json(
+      { error: paramsResult.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+  const id = Number(paramsResult.data.id);
+
   const url = new URL(request.url);
-  const cascade = url.searchParams.get("cascade") !== "false";
+  const queryResult = deleteTodoQueryDto.safeParse({
+    cascade: url.searchParams.get("cascade") ?? undefined,
+  });
+  const cascade = queryResult.success
+    ? queryResult.data.cascade !== "false"
+    : true;
 
   const rows = await db
     .select()
@@ -90,7 +119,6 @@ export async function DELETE(
   const todo = rows[0];
 
   if (cascade) {
-    // Get all descendant attachment URLs via recursive CTE
     const descendantAtts = await db.execute<{ blob_url: string }>(sql`
       WITH RECURSIVE descendants AS (
         SELECT id FROM todos WHERE id = ${id} AND user_id = ${user.id}
@@ -108,7 +136,6 @@ export async function DELETE(
       }
     }
 
-    // Delete descendant attachments and todos
     await db.execute(sql`
       WITH RECURSIVE descendants AS (
         SELECT id FROM todos WHERE id = ${id} AND user_id = ${user.id}
@@ -127,13 +154,11 @@ export async function DELETE(
       DELETE FROM todos WHERE id IN (SELECT id FROM descendants)
     `);
   } else {
-    // Reparent children to deleted todo's parent
     await db
       .update(todos)
       .set({ parentId: todo.parentId })
       .where(and(eq(todos.parentId, id), eq(todos.userId, user.id)));
 
-    // Delete this todo's attachments
     const atts = await db
       .select({ blobUrl: attachments.blobUrl })
       .from(attachments)

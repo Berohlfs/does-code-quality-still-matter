@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { eq, and } from "drizzle-orm";
 import { put } from "@vercel/blob";
-import { db } from "@/db";
+import { db } from "@/db/client";
 import { todos, attachments } from "@/db/schemas";
-import { getRequestUser } from "@/lib/request";
+import { getRequestUser } from "@/app/api/_helpers/request";
+import { todoParamsDto, type AttachmentDto } from "@/dto/todo";
 
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB
 const MAX_FILES = 10;
@@ -13,8 +14,16 @@ type Params = Promise<{ id: string }>;
 
 export async function POST(request: Request, { params }: { params: Params }) {
   const user = await getRequestUser();
-  const { id: idStr } = await params;
-  const todoId = Number(idStr);
+  const rawParams = await params;
+
+  const paramsResult = todoParamsDto.safeParse(rawParams);
+  if (!paramsResult.success) {
+    return NextResponse.json(
+      { error: paramsResult.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+  const todoId = Number(paramsResult.data.id);
 
   const rows = await db
     .select({ id: todos.id })
@@ -40,7 +49,7 @@ export async function POST(request: Request, { params }: { params: Params }) {
     );
   }
 
-  const added = [];
+  const added: AttachmentDto[] = [];
 
   for (const file of files) {
     if (file.size > MAX_FILE_SIZE) {
