@@ -1198,11 +1198,211 @@
       .stat-card { padding: 12px 14px; }
       .stat-value { font-size: 1.375rem; }
     }
+
+    /* ── Auth Screen ── */
+    .auth-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .auth-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .auth-card .auth-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .auth-card .auth-logo .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .auth-card .auth-subtitle {
+      color: var(--text-tertiary);
+      font-size: 0.875rem;
+      margin-bottom: 28px;
+    }
+
+    .auth-card h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: var(--text-primary);
+    }
+
+    .auth-card label {
+      display: block;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
+    }
+
+    .auth-card input[type="text"],
+    .auth-card input[type="email"],
+    .auth-card input[type="password"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      outline: none;
+      transition: all var(--transition);
+      font-family: inherit;
+      margin-bottom: 16px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .auth-card input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .auth-card .btn-auth {
+      width: 100%;
+      padding: 12px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all var(--transition);
+      margin-top: 4px;
+    }
+
+    .auth-card .btn-auth:hover { background: var(--accent-hover); }
+    .auth-card .btn-auth:active { transform: scale(0.98); }
+
+    .auth-card .auth-error {
+      background: var(--danger-bg);
+      color: var(--danger);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .auth-card .auth-switch {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.8125rem;
+      color: var(--text-tertiary);
+    }
+
+    .auth-card .auth-switch a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .auth-card .auth-switch a:hover { text-decoration: underline; }
+
+    /* ── User menu in header ── */
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-name {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-logout {
+      padding: 6px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .btn-logout:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
   </style>
 </head>
 <body>
+  <!-- Auth Screen -->
+  <div class="auth-screen" id="authScreen" style="display:none">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="logo-icon">T</div>
+        Taskflow
+      </div>
+      <p class="auth-subtitle">Sign in to manage your tasks</p>
+
+      <!-- Sign In Form -->
+      <form id="signinForm">
+        <h2>Sign In</h2>
+        <div class="auth-error" id="signinError"></div>
+        <label for="signinEmail">Email</label>
+        <input type="email" id="signinEmail" required autocomplete="email" placeholder="you@example.com">
+        <label for="signinPassword">Password</label>
+        <input type="password" id="signinPassword" required autocomplete="current-password" placeholder="Your password">
+        <button type="submit" class="btn-auth">Sign In</button>
+        <p class="auth-switch">Don't have an account? <a id="showSignup">Sign up</a></p>
+      </form>
+
+      <!-- Sign Up Form -->
+      <form id="signupForm" style="display:none">
+        <h2>Create Account</h2>
+        <div class="auth-error" id="signupError"></div>
+        <label for="signupName">Name</label>
+        <input type="text" id="signupName" required autocomplete="name" placeholder="Your name">
+        <label for="signupEmail">Email</label>
+        <input type="email" id="signupEmail" required autocomplete="email" placeholder="you@example.com">
+        <label for="signupPassword">Password</label>
+        <input type="password" id="signupPassword" required minlength="6" autocomplete="new-password" placeholder="At least 6 characters">
+        <button type="submit" class="btn-auth">Create Account</button>
+        <p class="auth-switch">Already have an account? <a id="showSignin">Sign in</a></p>
+      </form>
+    </div>
+  </div>
+
   <!-- Header -->
-  <header class="app-header">
+  <header class="app-header" id="appHeader" style="display:none">
     <div class="header-inner">
       <div class="app-logo">
         <div class="logo-icon">T</div>
@@ -1221,11 +1421,15 @@
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
           New Task
         </button>
+        <div class="user-menu">
+          <span class="user-name" id="userName"></span>
+          <button class="btn-logout" id="logoutBtn">Log out</button>
+        </div>
       </div>
     </div>
   </header>
 
-  <div class="app-shell list-view" id="appContainer">
+  <div class="app-shell list-view" id="appContainer" style="display:none">
     <!-- Stats -->
     <div class="stats-bar" id="statsBar">
       <div class="stat-card">
@@ -1356,6 +1560,149 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
+    // ── Auth state ──
+    let authToken = localStorage.getItem("authToken");
+    let currentUser = null;
+
+    function authHeaders() {
+      return authToken ? { "Authorization": "Bearer " + authToken } : {};
+    }
+
+    function authFetch(url, opts = {}) {
+      opts.headers = { ...authHeaders(), ...(opts.headers || {}) };
+      return fetch(url, opts).then(res => {
+        if (res.status === 401) { logout(); throw new Error("Unauthorized"); }
+        return res;
+      });
+    }
+
+    // ── Auth UI ──
+    const authScreen = document.getElementById("authScreen");
+    const appHeader = document.getElementById("appHeader");
+    const signinForm = document.getElementById("signinForm");
+    const signupForm = document.getElementById("signupForm");
+    const signinError = document.getElementById("signinError");
+    const signupError = document.getElementById("signupError");
+
+    document.getElementById("showSignup").addEventListener("click", () => {
+      signinForm.style.display = "none";
+      signupForm.style.display = "";
+      signupError.style.display = "none";
+    });
+
+    document.getElementById("showSignin").addEventListener("click", () => {
+      signupForm.style.display = "none";
+      signinForm.style.display = "";
+      signinError.style.display = "none";
+    });
+
+    signinForm.addEventListener("submit", async e => {
+      e.preventDefault();
+      signinError.style.display = "none";
+      const btn = signinForm.querySelector(".btn-auth");
+      btn.textContent = "Signing in...";
+      btn.disabled = true;
+      try {
+        const res = await fetch("/api/auth/signin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: document.getElementById("signinEmail").value,
+            password: document.getElementById("signinPassword").value
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Sign in failed");
+        authToken = data.token;
+        currentUser = data.user;
+        localStorage.setItem("authToken", authToken);
+        showApp();
+      } catch (err) {
+        signinError.textContent = err.message;
+        signinError.style.display = "";
+      } finally {
+        btn.textContent = "Sign In";
+        btn.disabled = false;
+      }
+    });
+
+    signupForm.addEventListener("submit", async e => {
+      e.preventDefault();
+      signupError.style.display = "none";
+      const btn = signupForm.querySelector(".btn-auth");
+      btn.textContent = "Creating account...";
+      btn.disabled = true;
+      try {
+        const res = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: document.getElementById("signupName").value,
+            email: document.getElementById("signupEmail").value,
+            password: document.getElementById("signupPassword").value
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Sign up failed");
+        authToken = data.token;
+        currentUser = data.user;
+        localStorage.setItem("authToken", authToken);
+        showApp();
+      } catch (err) {
+        signupError.textContent = err.message;
+        signupError.style.display = "";
+      } finally {
+        btn.textContent = "Create Account";
+        btn.disabled = false;
+      }
+    });
+
+    function logout() {
+      authToken = null;
+      currentUser = null;
+      localStorage.removeItem("authToken");
+      authScreen.style.display = "";
+      appHeader.style.display = "none";
+      appContainer.style.display = "none";
+      // Reset forms
+      signinForm.reset();
+      signupForm.reset();
+      signinForm.style.display = "";
+      signupForm.style.display = "none";
+      signinError.style.display = "none";
+      signupError.style.display = "none";
+    }
+
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+
+    function showApp() {
+      authScreen.style.display = "none";
+      appHeader.style.display = "";
+      appContainer.style.display = "";
+      document.getElementById("userName").textContent = currentUser ? currentUser.name : "";
+      isInitialLoad = true;
+      fetchTodos();
+    }
+
+    // ── Boot: check token validity ──
+    async function boot() {
+      if (authToken) {
+        try {
+          const res = await fetch("/api/auth/me", { headers: authHeaders() });
+          if (res.ok) {
+            currentUser = await res.json();
+            showApp();
+            return;
+          }
+        } catch {}
+        // Token invalid
+        localStorage.removeItem("authToken");
+        authToken = null;
+      }
+      authScreen.style.display = "";
+    }
+
+    // ── App state ──
     let todos = [];
     let filter = "all";
     let viewMode = "list";
@@ -1445,11 +1792,12 @@
     async function fetchTodos() {
       if (isInitialLoad) showLoadingSkeleton();
       try {
-        const res = await fetch("/api/todos");
+        const res = await authFetch("/api/todos");
         todos = await res.json();
         if (isInitialLoad) { restoreStatsBar(); isInitialLoad = false; }
         render();
       } catch (err) {
+        if (err.message === "Unauthorized") return;
         if (isInitialLoad) { restoreStatsBar(); isInitialLoad = false; }
         showToast("Failed to load tasks", "error");
       }
@@ -1744,7 +2092,7 @@
       const id = e.dataTransfer.getData("text/plain");
       const newStatus = zone.dataset.status;
       try {
-        await fetch(`/api/todos/${id}`, {
+        await authFetch(`/api/todos/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: newStatus })
@@ -1849,7 +2197,7 @@
       if (!btn) return;
       const todoId = btn.dataset.todoId;
       const attId = btn.dataset.attId;
-      await fetch(`/api/todos/${todoId}/attachments/${attId}`, { method: "DELETE" });
+      await authFetch(`/api/todos/${todoId}/attachments/${attId}`, { method: "DELETE" });
       await fetchTodos();
       const updated = todos.find(t => t.id === Number(todoId));
       if (updated) openModal(updated);
@@ -1859,7 +2207,7 @@
       if (pendingFileList.length === 0) return;
       const formData = new FormData();
       for (const f of pendingFileList) formData.append("files", f);
-      await fetch(`/api/todos/${todoId}/attachments`, { method: "POST", body: formData });
+      await authFetch(`/api/todos/${todoId}/attachments`, { method: "POST", body: formData });
     }
 
     document.getElementById("openAdd").addEventListener("click", () => openModal(null, null));
@@ -1885,7 +2233,7 @@
         const id = editId.value;
         let todoId;
         if (id) {
-          await fetch(`/api/todos/${id}`, {
+          await authFetch(`/api/todos/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
@@ -1894,7 +2242,7 @@
         } else {
           const pId = parentIdField.value;
           if (pId) data.parentId = Number(pId);
-          const res = await fetch("/api/todos", {
+          const res = await authFetch("/api/todos", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
@@ -1950,7 +2298,7 @@
       btn.classList.add("loading");
       btn.innerHTML = `<span class="btn-spinner"></span>Deleting...`;
       try {
-        await fetch(`/api/todos/${deleteDialogTodo.id}?cascade=true`, { method: "DELETE" });
+        await authFetch(`/api/todos/${deleteDialogTodo.id}?cascade=true`, { method: "DELETE" });
         closeDeleteDialog();
         showToast("Task and subtasks deleted", "success");
         await fetchTodos();
@@ -1965,7 +2313,7 @@
       btn.classList.add("loading");
       btn.innerHTML = `<span class="btn-spinner"></span>Deleting...`;
       try {
-        await fetch(`/api/todos/${deleteDialogTodo.id}?cascade=false`, { method: "DELETE" });
+        await authFetch(`/api/todos/${deleteDialogTodo.id}?cascade=false`, { method: "DELETE" });
         closeDeleteDialog();
         showToast("Task deleted, subtasks kept", "success");
         await fetchTodos();
@@ -1998,7 +2346,7 @@
 
         const attBtn = e.target.closest(".att-remove");
         if (attBtn) {
-          await fetch(`/api/todos/${attBtn.dataset.todoId}/attachments/${attBtn.dataset.attId}`, { method: "DELETE" });
+          await authFetch(`/api/todos/${attBtn.dataset.todoId}/attachments/${attBtn.dataset.attId}`, { method: "DELETE" });
           await fetchTodos();
           return;
         }
@@ -2017,7 +2365,7 @@
             showDeleteDialog(todo);
           } else {
             try {
-              await fetch(`/api/todos/${id}`, { method: "DELETE" });
+              await authFetch(`/api/todos/${id}`, { method: "DELETE" });
               showToast("Task deleted", "success");
               await fetchTodos();
             } catch { showToast("Delete failed", "error"); }
@@ -2041,7 +2389,8 @@
       }
     });
 
-    fetchTodos();
+    // Start the app
+    boot();
   </script>
 </body>
 </html>

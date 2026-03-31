@@ -8,7 +8,8 @@ const app = require("./api/index");
 
 const PORT = process.env.PORT || 3000;
 
-// Serve the frontend statically
+// Serve the frontend statically (root dir has index.html for Vercel, public/ for legacy)
+app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.listen(PORT, () => {

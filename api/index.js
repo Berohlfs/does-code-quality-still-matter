@@ -1,9 +1,13 @@
 const express = require("express");
 const multer = require("multer");
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const { neon } = require("@neondatabase/serverless");
 const { put, del } = require("@vercel/blob");
 const nodemailer = require("nodemailer");
+
+const JWT_SECRET = process.env.JWT_SECRET || "change-me-in-production";
 
 const mailTransporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -54,8 +58,18 @@ app.use(async (req, res, next) => {
     if (!migrated) {
       const sql = getSQL();
       await sql`
+        CREATE TABLE IF NOT EXISTS users (
+          id BIGINT PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+      `;
+      await sql`
         CREATE TABLE IF NOT EXISTS todos (
           id BIGINT PRIMARY KEY,
+          user_id BIGINT NOT NULL,
           parent_id BIGINT,
           title TEXT NOT NULL,
           description TEXT DEFAULT '',
@@ -76,12 +90,18 @@ app.use(async (req, res, next) => {
       await sql`
         CREATE TABLE IF NOT EXISTS notes (
           id BIGINT PRIMARY KEY,
+          user_id BIGINT NOT NULL,
           title TEXT NOT NULL,
           content TEXT DEFAULT '',
           created_at TIMESTAMPTZ DEFAULT NOW(),
           updated_at TIMESTAMPTZ DEFAULT NOW()
         )
       `;
+      // Migrate existing tables: add user_id if missing
+      try {
+        await sql`ALTER TABLE todos ADD COLUMN IF NOT EXISTS user_id BIGINT`;
+        await sql`ALTER TABLE notes ADD COLUMN IF NOT EXISTS user_id BIGINT`;
+      } catch (e) { /* column already exists */ }
       migrated = true;
     }
     next();
@@ -90,11 +110,83 @@ app.use(async (req, res, next) => {
   }
 });
 
-// GET /api/todos
-app.get("/api/todos", async (req, res) => {
+// ── Auth helpers ──
+
+function signToken(user) {
+  return jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: "7d" });
+}
+
+function requireAuth(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  try {
+    const payload = jwt.verify(header.slice(7), JWT_SECRET);
+    req.user = payload;
+    next();
+  } catch {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
+
+// ── Auth endpoints ──
+
+app.post("/api/auth/signup", async (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: "Name is required" });
+  if (!email || !email.trim()) return res.status(400).json({ error: "Email is required" });
+  if (!password || password.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters" });
+
   const sql = getSQL();
-  const todos = await sql`SELECT * FROM todos ORDER BY created_at`;
-  const attachments = await sql`SELECT * FROM attachments`;
+  const existing = await sql`SELECT id FROM users WHERE email = ${email.trim().toLowerCase()}`;
+  if (existing.length > 0) return res.status(409).json({ error: "Email already in use" });
+
+  const id = Date.now();
+  const passwordHash = await bcrypt.hash(password, 10);
+  await sql`
+    INSERT INTO users (id, name, email, password_hash)
+    VALUES (${id}, ${name.trim()}, ${email.trim().toLowerCase()}, ${passwordHash})
+  `;
+
+  const user = { id, name: name.trim(), email: email.trim().toLowerCase() };
+  res.status(201).json({ token: signToken(user), user });
+});
+
+app.post("/api/auth/signin", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
+
+  const sql = getSQL();
+  const rows = await sql`SELECT * FROM users WHERE email = ${email.trim().toLowerCase()}`;
+  if (rows.length === 0) return res.status(401).json({ error: "Invalid email or password" });
+
+  const user = rows[0];
+  const valid = await bcrypt.compare(password, user.password_hash);
+  if (!valid) return res.status(401).json({ error: "Invalid email or password" });
+
+  const userData = { id: Number(user.id), name: user.name, email: user.email };
+  res.json({ token: signToken(userData), user: userData });
+});
+
+app.get("/api/auth/me", requireAuth, async (req, res) => {
+  const sql = getSQL();
+  const rows = await sql`SELECT id, name, email FROM users WHERE id = ${req.user.id}`;
+  if (rows.length === 0) return res.status(401).json({ error: "User not found" });
+  const u = rows[0];
+  res.json({ id: Number(u.id), name: u.name, email: u.email });
+});
+
+// ── Protected routes ──
+
+// GET /api/todos
+app.get("/api/todos", requireAuth, async (req, res) => {
+  const sql = getSQL();
+  const todos = await sql`SELECT * FROM todos WHERE user_id = ${req.user.id} ORDER BY created_at`;
+  const todoIds = todos.map(t => Number(t.id));
+  const attachments = todoIds.length > 0
+    ? await sql`SELECT * FROM attachments WHERE todo_id = ANY(${todoIds})`
+    : [];
 
   res.json(todos.map(t => ({
     id: Number(t.id),
@@ -115,7 +207,7 @@ app.get("/api/todos", async (req, res) => {
 });
 
 // POST /api/todos
-app.post("/api/todos", async (req, res) => {
+app.post("/api/todos", requireAuth, async (req, res) => {
   const { title, description, dueDate, parentId, status } = req.body;
   if (!title || !title.trim()) return res.status(400).json({ error: "Title is required" });
 
@@ -125,13 +217,13 @@ app.post("/api/todos", async (req, res) => {
   const pId = parentId != null ? Number(parentId) : null;
 
   if (pId != null) {
-    const rows = await sql`SELECT id FROM todos WHERE id = ${pId}`;
+    const rows = await sql`SELECT id FROM todos WHERE id = ${pId} AND user_id = ${req.user.id}`;
     if (rows.length === 0) return res.status(400).json({ error: "Parent not found" });
   }
 
   await sql`
-    INSERT INTO todos (id, parent_id, title, description, status, due_date)
-    VALUES (${id}, ${pId}, ${title.trim()}, ${(description || "").trim()}, ${validStatus}, ${dueDate || null})
+    INSERT INTO todos (id, user_id, parent_id, title, description, status, due_date)
+    VALUES (${id}, ${req.user.id}, ${pId}, ${title.trim()}, ${(description || "").trim()}, ${validStatus}, ${dueDate || null})
   `;
 
   const todo = {
@@ -150,10 +242,10 @@ app.post("/api/todos", async (req, res) => {
 });
 
 // PUT /api/todos/:id
-app.put("/api/todos/:id", async (req, res) => {
+app.put("/api/todos/:id", requireAuth, async (req, res) => {
   const sql = getSQL();
   const id = Number(req.params.id);
-  const rows = await sql`SELECT * FROM todos WHERE id = ${id}`;
+  const rows = await sql`SELECT * FROM todos WHERE id = ${id} AND user_id = ${req.user.id}`;
   if (rows.length === 0) return res.status(404).json({ error: "Not found" });
 
   const todo = rows[0];
@@ -164,7 +256,7 @@ app.put("/api/todos/:id", async (req, res) => {
 
   await sql`
     UPDATE todos SET title = ${title}, description = ${description}, status = ${status}, due_date = ${dueDate}
-    WHERE id = ${id}
+    WHERE id = ${id} AND user_id = ${req.user.id}
   `;
 
   const atts = await sql`SELECT * FROM attachments WHERE todo_id = ${id}`;
@@ -186,20 +278,19 @@ app.put("/api/todos/:id", async (req, res) => {
 });
 
 // DELETE /api/todos/:id
-app.delete("/api/todos/:id", async (req, res) => {
+app.delete("/api/todos/:id", requireAuth, async (req, res) => {
   const sql = getSQL();
   const id = Number(req.params.id);
   const cascade = req.query.cascade !== "false";
 
-  const rows = await sql`SELECT * FROM todos WHERE id = ${id}`;
+  const rows = await sql`SELECT * FROM todos WHERE id = ${id} AND user_id = ${req.user.id}`;
   if (rows.length === 0) return res.status(404).json({ error: "Not found" });
   const todo = rows[0];
 
   if (cascade) {
-    // Get blob URLs for this todo and all descendants
     const atts = await sql`
       WITH RECURSIVE descendants AS (
-        SELECT id FROM todos WHERE id = ${id}
+        SELECT id FROM todos WHERE id = ${id} AND user_id = ${req.user.id}
         UNION ALL
         SELECT t.id FROM todos t INNER JOIN descendants d ON t.parent_id = d.id
       )
@@ -209,10 +300,9 @@ app.delete("/api/todos/:id", async (req, res) => {
       try { await del(a.blob_url); } catch (e) { /* ignore */ }
     }
 
-    // Delete DB records (attachments first, then todos)
     await sql`
       WITH RECURSIVE descendants AS (
-        SELECT id FROM todos WHERE id = ${id}
+        SELECT id FROM todos WHERE id = ${id} AND user_id = ${req.user.id}
         UNION ALL
         SELECT t.id FROM todos t INNER JOIN descendants d ON t.parent_id = d.id
       )
@@ -220,35 +310,33 @@ app.delete("/api/todos/:id", async (req, res) => {
     `;
     await sql`
       WITH RECURSIVE descendants AS (
-        SELECT id FROM todos WHERE id = ${id}
+        SELECT id FROM todos WHERE id = ${id} AND user_id = ${req.user.id}
         UNION ALL
         SELECT t.id FROM todos t INNER JOIN descendants d ON t.parent_id = d.id
       )
       DELETE FROM todos WHERE id IN (SELECT id FROM descendants)
     `;
   } else {
-    // Reparent children
     const newParent = todo.parent_id || null;
-    await sql`UPDATE todos SET parent_id = ${newParent} WHERE parent_id = ${id}`;
+    await sql`UPDATE todos SET parent_id = ${newParent} WHERE parent_id = ${id} AND user_id = ${req.user.id}`;
 
-    // Delete only this todo's blobs
     const atts = await sql`SELECT blob_url FROM attachments WHERE todo_id = ${id}`;
     for (const a of atts) {
       try { await del(a.blob_url); } catch (e) { /* ignore */ }
     }
 
     await sql`DELETE FROM attachments WHERE todo_id = ${id}`;
-    await sql`DELETE FROM todos WHERE id = ${id}`;
+    await sql`DELETE FROM todos WHERE id = ${id} AND user_id = ${req.user.id}`;
   }
 
   res.status(204).end();
 });
 
 // POST /api/todos/:id/attachments
-app.post("/api/todos/:id/attachments", upload.array("files", 10), async (req, res) => {
+app.post("/api/todos/:id/attachments", requireAuth, upload.array("files", 10), async (req, res) => {
   const sql = getSQL();
   const todoId = Number(req.params.id);
-  const rows = await sql`SELECT id FROM todos WHERE id = ${todoId}`;
+  const rows = await sql`SELECT id FROM todos WHERE id = ${todoId} AND user_id = ${req.user.id}`;
   if (rows.length === 0) return res.status(404).json({ error: "Not found" });
 
   const added = [];
@@ -268,8 +356,12 @@ app.post("/api/todos/:id/attachments", upload.array("files", 10), async (req, re
 });
 
 // DELETE /api/todos/:id/attachments/:attId
-app.delete("/api/todos/:id/attachments/:attId", async (req, res) => {
+app.delete("/api/todos/:id/attachments/:attId", requireAuth, async (req, res) => {
   const sql = getSQL();
+  // Verify the todo belongs to the user
+  const todoRows = await sql`SELECT id FROM todos WHERE id = ${Number(req.params.id)} AND user_id = ${req.user.id}`;
+  if (todoRows.length === 0) return res.status(404).json({ error: "Not found" });
+
   const rows = await sql`SELECT * FROM attachments WHERE id = ${req.params.attId} AND todo_id = ${Number(req.params.id)}`;
   if (rows.length === 0) return res.status(404).json({ error: "Attachment not found" });
 
@@ -281,9 +373,9 @@ app.delete("/api/todos/:id/attachments/:attId", async (req, res) => {
 // ── Notes API ──
 
 // GET /api/notes
-app.get("/api/notes", async (req, res) => {
+app.get("/api/notes", requireAuth, async (req, res) => {
   const sql = getSQL();
-  const notes = await sql`SELECT * FROM notes ORDER BY updated_at DESC`;
+  const notes = await sql`SELECT * FROM notes WHERE user_id = ${req.user.id} ORDER BY updated_at DESC`;
   res.json(notes.map(n => ({
     id: Number(n.id),
     title: n.title,
@@ -294,15 +386,15 @@ app.get("/api/notes", async (req, res) => {
 });
 
 // POST /api/notes
-app.post("/api/notes", async (req, res) => {
+app.post("/api/notes", requireAuth, async (req, res) => {
   const { title, content } = req.body;
   if (!title || !title.trim()) return res.status(400).json({ error: "Title is required" });
 
   const sql = getSQL();
   const id = Date.now();
   await sql`
-    INSERT INTO notes (id, title, content)
-    VALUES (${id}, ${title.trim()}, ${(content || "").trim()})
+    INSERT INTO notes (id, user_id, title, content)
+    VALUES (${id}, ${req.user.id}, ${title.trim()}, ${(content || "").trim()})
   `;
 
   res.status(201).json({
@@ -315,10 +407,10 @@ app.post("/api/notes", async (req, res) => {
 });
 
 // PUT /api/notes/:id
-app.put("/api/notes/:id", async (req, res) => {
+app.put("/api/notes/:id", requireAuth, async (req, res) => {
   const sql = getSQL();
   const id = Number(req.params.id);
-  const rows = await sql`SELECT * FROM notes WHERE id = ${id}`;
+  const rows = await sql`SELECT * FROM notes WHERE id = ${id} AND user_id = ${req.user.id}`;
   if (rows.length === 0) return res.status(404).json({ error: "Not found" });
 
   const note = rows[0];
@@ -327,20 +419,20 @@ app.put("/api/notes/:id", async (req, res) => {
 
   await sql`
     UPDATE notes SET title = ${title}, content = ${content}, updated_at = NOW()
-    WHERE id = ${id}
+    WHERE id = ${id} AND user_id = ${req.user.id}
   `;
 
   res.json({ id, title, content, createdAt: note.created_at, updatedAt: new Date().toISOString() });
 });
 
 // DELETE /api/notes/:id
-app.delete("/api/notes/:id", async (req, res) => {
+app.delete("/api/notes/:id", requireAuth, async (req, res) => {
   const sql = getSQL();
   const id = Number(req.params.id);
-  const rows = await sql`SELECT id FROM notes WHERE id = ${id}`;
+  const rows = await sql`SELECT id FROM notes WHERE id = ${id} AND user_id = ${req.user.id}`;
   if (rows.length === 0) return res.status(404).json({ error: "Not found" });
 
-  await sql`DELETE FROM notes WHERE id = ${id}`;
+  await sql`DELETE FROM notes WHERE id = ${id} AND user_id = ${req.user.id}`;
   res.status(204).end();
 });
 
