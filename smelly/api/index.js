@@ -87,20 +87,9 @@ app.use(async (req, res, next) => {
           size INTEGER NOT NULL
         )
       `;
-      await sql`
-        CREATE TABLE IF NOT EXISTS notes (
-          id BIGINT PRIMARY KEY,
-          user_id BIGINT NOT NULL,
-          title TEXT NOT NULL,
-          content TEXT DEFAULT '',
-          created_at TIMESTAMPTZ DEFAULT NOW(),
-          updated_at TIMESTAMPTZ DEFAULT NOW()
-        )
-      `;
       // Migrate existing tables: add user_id if missing
       try {
         await sql`ALTER TABLE todos ADD COLUMN IF NOT EXISTS user_id BIGINT`;
-        await sql`ALTER TABLE notes ADD COLUMN IF NOT EXISTS user_id BIGINT`;
       } catch (e) { /* column already exists */ }
       migrated = true;
     }
@@ -367,72 +356,6 @@ app.delete("/api/todos/:id/attachments/:attId", requireAuth, async (req, res) =>
 
   try { await del(rows[0].blob_url); } catch (e) { /* ignore */ }
   await sql`DELETE FROM attachments WHERE id = ${req.params.attId}`;
-  res.status(204).end();
-});
-
-// ── Notes API ──
-
-// GET /api/notes
-app.get("/api/notes", requireAuth, async (req, res) => {
-  const sql = getSQL();
-  const notes = await sql`SELECT * FROM notes WHERE user_id = ${req.user.id} ORDER BY updated_at DESC`;
-  res.json(notes.map(n => ({
-    id: Number(n.id),
-    title: n.title,
-    content: n.content || "",
-    createdAt: n.created_at,
-    updatedAt: n.updated_at
-  })));
-});
-
-// POST /api/notes
-app.post("/api/notes", requireAuth, async (req, res) => {
-  const { title, content } = req.body;
-  if (!title || !title.trim()) return res.status(400).json({ error: "Title is required" });
-
-  const sql = getSQL();
-  const id = Date.now();
-  await sql`
-    INSERT INTO notes (id, user_id, title, content)
-    VALUES (${id}, ${req.user.id}, ${title.trim()}, ${(content || "").trim()})
-  `;
-
-  res.status(201).json({
-    id,
-    title: title.trim(),
-    content: (content || "").trim(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  });
-});
-
-// PUT /api/notes/:id
-app.put("/api/notes/:id", requireAuth, async (req, res) => {
-  const sql = getSQL();
-  const id = Number(req.params.id);
-  const rows = await sql`SELECT * FROM notes WHERE id = ${id} AND user_id = ${req.user.id}`;
-  if (rows.length === 0) return res.status(404).json({ error: "Not found" });
-
-  const note = rows[0];
-  const title = req.body.title !== undefined ? req.body.title.trim() : note.title;
-  const content = req.body.content !== undefined ? req.body.content.trim() : (note.content || "");
-
-  await sql`
-    UPDATE notes SET title = ${title}, content = ${content}, updated_at = NOW()
-    WHERE id = ${id} AND user_id = ${req.user.id}
-  `;
-
-  res.json({ id, title, content, createdAt: note.created_at, updatedAt: new Date().toISOString() });
-});
-
-// DELETE /api/notes/:id
-app.delete("/api/notes/:id", requireAuth, async (req, res) => {
-  const sql = getSQL();
-  const id = Number(req.params.id);
-  const rows = await sql`SELECT id FROM notes WHERE id = ${id} AND user_id = ${req.user.id}`;
-  if (rows.length === 0) return res.status(404).json({ error: "Not found" });
-
-  await sql`DELETE FROM notes WHERE id = ${id} AND user_id = ${req.user.id}`;
   res.status(204).end();
 });
 
