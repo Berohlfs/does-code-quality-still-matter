@@ -2087,7 +2087,7 @@
       if (!attachments || attachments.length === 0) return "";
       const chips = attachments.map(a => `
         <span class="att-chip">
-          <a href="/uploads/${encodeURIComponent(a.filename)}" target="_blank" title="${escapeHtml(a.originalName)} (${formatSize(a.size)})">${escapeHtml(a.originalName)}</a>
+          <a href="${a.url}" target="_blank" title="${escapeHtml(a.originalName)} (${formatSize(a.size)})">${escapeHtml(a.originalName)}</a>
           <button class="att-remove" data-todo-id="${todoId}" data-att-id="${a.id}" title="Remove">&#10005;</button>
         </span>
       `).join("");
@@ -2379,7 +2379,7 @@
           existingAttachments.style.display = "";
           existingAttList.innerHTML = todo.attachments.map(a => `
             <span class="att-chip">
-              <a href="/uploads/${encodeURIComponent(a.filename)}" target="_blank">${escapeHtml(a.originalName)}</a>
+              <a href="${a.url}" target="_blank">${escapeHtml(a.originalName)}</a>
               <button type="button" class="att-remove" data-todo-id="${todo.id}" data-att-id="${a.id}" title="Remove">&#10005;</button>
             </span>
           `).join("");
