@@ -1,198 +1,450 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Todo List</title>
+  <title>Taskflow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg: #f8f9fc;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #f1f3f9;
+      --bg-kanban-col: #f1f3f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-tertiary: #94a3b8;
+      --border: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-soft: #eef2ff;
+      --accent-text: #4338ca;
+      --shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
+      --shadow-md: 0 4px 12px rgba(15,23,42,0.06);
+      --shadow-lg: 0 12px 40px rgba(15,23,42,0.1);
+      --shadow-card: 0 1px 3px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.02);
+      --shadow-card-hover: 0 4px 16px rgba(15,23,42,0.08);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --pending: #f59e0b;
+      --pending-bg: #fffbeb;
+      --pending-text: #92400e;
+      --progress: #3b82f6;
+      --progress-bg: #eff6ff;
+      --progress-text: #1e40af;
+      --done: #10b981;
+      --done-bg: #ecfdf5;
+      --done-text: #065f46;
+      --danger: #ef4444;
+      --danger-bg: #fef2f2;
+      --danger-hover: #dc2626;
+      --overlay: rgba(15,23,42,0.4);
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #1e293b;
+      --bg-kanban-col: #1e293b;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-tertiary: #64748b;
+      --border: #334155;
+      --border-hover: #475569;
+      --accent: #818cf8;
+      --accent-hover: #6366f1;
+      --accent-soft: rgba(99,102,241,0.15);
+      --accent-text: #a5b4fc;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.25);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.4);
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.15);
+      --shadow-card-hover: 0 4px 16px rgba(0,0,0,0.25);
+      --pending-bg: rgba(245,158,11,0.12);
+      --pending-text: #fbbf24;
+      --progress-bg: rgba(59,130,246,0.12);
+      --progress-text: #60a5fa;
+      --done-bg: rgba(16,185,129,0.12);
+      --done-text: #34d399;
+      --danger-bg: rgba(239,68,68,0.12);
+      --overlay: rgba(0,0,0,0.6);
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f0f2f5;
-      color: #1a1a2e;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ── Layout Shell ── */
+    .app-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .app-shell.list-view { max-width: 780px; }
+
+    /* ── Header ── */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      background: color-mix(in srgb, var(--bg) 85%, transparent);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 24px;
       display: flex;
-      justify-content: center;
-      padding: 40px 16px;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 960px;
-      transition: max-width 0.3s;
-    }
-
-    .container.list-view { max-width: 660px; }
-
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 24px;
-      text-align: center;
-    }
-
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .app-shell.list-view ~ .app-header .header-inner,
+    .list-view-header { max-width: 780px; }
+
+    .app-logo {
+      display: flex;
+      align-items: center;
       gap: 10px;
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      flex-shrink: 0;
     }
 
-    .top-bar-left {
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+      justify-content: center;
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 700;
     }
 
-    .filters {
+    .header-spacer { flex: 1; }
+
+    .header-controls {
       display: flex;
+      align-items: center;
       gap: 8px;
     }
 
-    .filters button {
+    /* ── Segmented Control (view toggle + filters) ── */
+    .segmented-control {
+      display: inline-flex;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-sm);
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .segmented-control button {
       padding: 6px 14px;
-      border: 2px solid #d1d5db;
+      border: none;
       border-radius: 6px;
-      background: #fff;
-      font-size: 0.875rem;
+      background: transparent;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      font-family: inherit;
+      color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all var(--transition);
+      white-space: nowrap;
     }
 
-    .filters button.active {
-      border-color: #6366f1;
-      background: #6366f1;
-      color: #fff;
+    .segmented-control button:hover { color: var(--text-primary); }
+
+    .segmented-control button.active {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+      font-weight: 600;
     }
 
-    .view-toggle {
+    /* ── Theme Toggle ── */
+    .theme-toggle {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-secondary);
+      cursor: pointer;
       display: flex;
-      border: 2px solid #d1d5db;
-      border-radius: 6px;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      transition: all var(--transition);
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--border-hover);
+      color: var(--text-primary);
+    }
+
+    /* ── Add Button ── */
+    .add-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .add-btn:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+    .add-btn:active { transform: translateY(0); }
+
+    .add-btn svg { width: 16px; height: 16px; }
+
+    /* ── Stats Bar ── */
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      flex: 1;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      transition: all var(--transition);
+    }
+
+    .stat-card:hover { border-color: var(--border-hover); box-shadow: var(--shadow-md); }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-value.pending-val { color: var(--pending); }
+    .stat-value.progress-val { color: var(--progress); }
+    .stat-value.done-val { color: var(--done); }
+    .stat-value.total-val { color: var(--text-primary); }
+
+    .stat-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Progress Bar ── */
+    .progress-track {
+      height: 4px;
+      background: var(--bg-tertiary);
+      border-radius: 2px;
+      margin-top: 10px;
       overflow: hidden;
     }
 
-    .view-toggle button {
-      padding: 6px 12px;
-      border: none;
-      background: #fff;
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--done), #34d399);
+      border-radius: 2px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── Toolbar (below stats) ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      gap: 12px;
+    }
+
+    .toolbar-label {
       font-size: 0.875rem;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .view-toggle button.active {
-      background: #6366f1;
-      color: #fff;
-    }
-
-    .add-btn {
-      padding: 10px 20px;
-      background: #6366f1;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.95rem;
       font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
+      color: var(--text-secondary);
     }
-
-    .add-btn:hover { background: #4f46e5; }
 
     /* ── List View ── */
     .todo-list {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
+      padding-bottom: 80px;
     }
 
     .todo-item {
-      background: #fff;
-      padding: 16px;
-      border-radius: 10px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      border-left: 4px solid #d1d5db;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      transition: all var(--transition);
+      position: relative;
     }
 
-    .todo-item.status-pending { border-left-color: #f59e0b; }
-    .todo-item.status-in-progress { border-left-color: #3b82f6; }
-    .todo-item.status-done { border-left-color: #10b981; }
+    .todo-item:hover {
+      border-color: var(--border-hover);
+      box-shadow: var(--shadow-card-hover);
+    }
+
+    .todo-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 12px;
+      bottom: 12px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      transition: background var(--transition);
+    }
+
+    .todo-item.status-pending::before { background: var(--pending); }
+    .todo-item.status-in-progress::before { background: var(--progress); }
+    .todo-item.status-done::before { background: var(--done); }
 
     .todo-header {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .todo-title {
       flex: 1;
-      font-size: 1.05rem;
+      font-size: 0.9375rem;
       font-weight: 600;
       word-break: break-word;
+      line-height: 1.4;
     }
 
     .todo-item.status-done > .todo-body > .todo-header > .todo-title,
     .kanban-card.status-done > .todo-body > .todo-header > .todo-title {
       text-decoration: line-through;
-      opacity: 0.5;
+      opacity: 0.45;
+    }
+
+    .todo-actions {
+      display: flex;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+
+    .todo-item:hover .todo-body > .todo-header > .todo-actions,
+    .kanban-card:hover .todo-body > .todo-header > .todo-actions {
+      opacity: 1;
     }
 
     .todo-actions button {
       background: none;
       border: none;
       cursor: pointer;
-      font-size: 1.1rem;
+      font-size: 0.875rem;
       padding: 4px 6px;
-      border-radius: 4px;
-      transition: background 0.2s;
+      border-radius: 6px;
+      transition: all var(--transition);
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .todo-actions button:hover { background: #f3f4f6; }
+    .todo-actions button:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
 
     .todo-description {
-      font-size: 0.9rem;
-      color: #6b7280;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
       margin-bottom: 8px;
       word-break: break-word;
       white-space: pre-wrap;
+      line-height: 1.5;
     }
 
     .todo-meta {
       display: flex;
-      gap: 12px;
+      gap: 8px;
       align-items: center;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       flex-wrap: wrap;
     }
 
     .status-badge {
       padding: 2px 10px;
-      border-radius: 12px;
+      border-radius: 100px;
       font-weight: 600;
-      text-transform: capitalize;
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
-    .status-badge.pending { background: #fef3c7; color: #92400e; }
-    .status-badge.in-progress { background: #dbeafe; color: #1e40af; }
-    .status-badge.done { background: #d1fae5; color: #065f46; }
+    .status-badge.pending { background: var(--pending-bg); color: var(--pending-text); }
+    .status-badge.in-progress { background: var(--progress-bg); color: var(--progress-text); }
+    .status-badge.done { background: var(--done-bg); color: var(--done-text); }
 
-    .due-date { color: #6b7280; }
-    .due-date.overdue { color: #ef4444; font-weight: 600; }
+    .due-date {
+      color: var(--text-tertiary);
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .due-date svg { width: 12px; height: 12px; }
+    .due-date.overdue { color: var(--danger); font-weight: 600; }
 
     .empty {
       text-align: center;
-      color: #9ca3af;
-      padding: 32px 0;
-      font-size: 0.95rem;
+      color: var(--text-tertiary);
+      padding: 64px 0;
+      font-size: 0.9375rem;
     }
 
-    /* Attachments */
+    .empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      opacity: 0.4;
+    }
+
+    /* ── Attachments ── */
     .todo-attachments {
       margin-top: 10px;
       display: flex;
@@ -204,20 +456,25 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #f3f4f6;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 4px 10px;
-      font-size: 0.78rem;
-      color: #374151;
+      padding: 3px 10px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
       max-width: 220px;
+      transition: all var(--transition);
     }
 
+    .att-chip:hover { border-color: var(--border-hover); }
+
     .att-chip a {
-      color: #4f46e5;
+      color: var(--accent);
       text-decoration: none;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      font-weight: 500;
     }
 
     .att-chip a:hover { text-decoration: underline; }
@@ -226,69 +483,70 @@
       background: none;
       border: none;
       cursor: pointer;
-      font-size: 0.85rem;
-      color: #9ca3af;
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
       padding: 0 2px;
       line-height: 1;
+      transition: color var(--transition);
     }
 
-    .att-chip .att-remove:hover { color: #ef4444; }
+    .att-chip .att-remove:hover { color: var(--danger); }
 
-    /* ── Nested / Subtasks (list view) ── */
+    /* ── Subtasks (list view) ── */
     .subtask-list {
       list-style: none;
       margin-top: 10px;
-      margin-left: 6px;
-      padding-left: 14px;
-      border-left: 2px solid #e5e7eb;
+      margin-left: 8px;
+      padding-left: 16px;
+      border-left: 2px solid var(--border);
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
 
-    .subtask-list .subtask-list {
-      padding-left: 12px;
-    }
+    .subtask-list .subtask-list { padding-left: 14px; }
 
     .subtask-list .todo-item {
-      padding: 12px;
-      border-radius: 8px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
     }
 
-    .subtask-list .todo-title { font-size: 0.95rem; }
-    .subtask-list .todo-description { font-size: 0.84rem; }
+    .subtask-list .todo-title { font-size: 0.875rem; }
+    .subtask-list .todo-description { font-size: 0.8125rem; }
 
     .toggle-children {
       background: none;
       border: none;
       cursor: pointer;
-      font-size: 0.75rem;
-      color: #6366f1;
-      padding: 2px 6px;
-      border-radius: 4px;
-      transition: background 0.2s;
+      font-size: 0.6875rem;
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 6px;
+      transition: all var(--transition);
       flex-shrink: 0;
+      font-weight: 600;
     }
 
-    .toggle-children:hover { background: #eef2ff; }
+    .toggle-children:hover { background: var(--accent-soft); }
 
     .add-subtask-btn {
       background: none;
       border: none;
       cursor: pointer;
-      font-size: 0.85rem;
-      color: #6366f1;
-      padding: 2px 6px;
-      border-radius: 4px;
-      transition: background 0.2s;
+      font-size: 0.75rem;
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 6px;
+      transition: all var(--transition);
       flex-shrink: 0;
+      font-weight: 600;
     }
 
-    .add-subtask-btn:hover { background: #eef2ff; }
+    .add-subtask-btn:hover { background: var(--accent-soft); }
 
     .child-count {
-      font-size: 0.72rem;
-      color: #9ca3af;
+      font-size: 0.6875rem;
+      color: var(--text-tertiary);
       margin-left: 2px;
     }
 
@@ -296,6 +554,7 @@
     .kanban-board {
       display: none;
       gap: 16px;
+      padding-bottom: 80px;
     }
 
     .kanban-board.visible {
@@ -304,9 +563,10 @@
     }
 
     .kanban-column {
-      background: #e5e7eb;
-      border-radius: 12px;
-      padding: 12px;
+      background: var(--bg-kanban-col);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
       min-height: 200px;
       display: flex;
       flex-direction: column;
@@ -316,33 +576,37 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       padding: 0 4px;
     }
 
     .kanban-column-header .col-dot {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
     }
 
-    .kanban-column[data-status="pending"] .col-dot { background: #f59e0b; }
-    .kanban-column[data-status="in-progress"] .col-dot { background: #3b82f6; }
-    .kanban-column[data-status="done"] .col-dot { background: #10b981; }
+    .kanban-column[data-status="pending"] .col-dot { background: var(--pending); }
+    .kanban-column[data-status="in-progress"] .col-dot { background: var(--progress); }
+    .kanban-column[data-status="done"] .col-dot { background: var(--done); }
 
     .kanban-column-header h3 {
-      font-size: 0.9rem;
+      font-size: 0.8125rem;
       font-weight: 700;
       flex: 1;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
     .kanban-column-header .col-count {
-      font-size: 0.78rem;
-      background: #d1d5db;
+      font-size: 0.75rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
       padding: 1px 8px;
-      border-radius: 10px;
+      border-radius: 100px;
       font-weight: 600;
-      color: #374151;
+      color: var(--text-tertiary);
     }
 
     .kanban-cards {
@@ -351,34 +615,42 @@
       flex-direction: column;
       gap: 8px;
       min-height: 40px;
+      border-radius: var(--radius-sm);
+      transition: background var(--transition);
     }
 
     .kanban-cards.drag-over {
-      background: rgba(99,102,241,0.08);
-      border-radius: 8px;
+      background: var(--accent-soft);
     }
 
     .kanban-card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
       cursor: grab;
-      transition: box-shadow 0.2s, opacity 0.2s;
+      transition: all var(--transition);
+    }
+
+    .kanban-card:hover {
+      border-color: var(--border-hover);
+      box-shadow: var(--shadow-card-hover);
     }
 
     .kanban-card:active { cursor: grabbing; }
 
     .kanban-card.dragging {
       opacity: 0.5;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: var(--shadow-lg);
     }
 
     .kanban-card .todo-header { margin-bottom: 4px; }
-    .kanban-card .todo-title { font-size: 0.95rem; }
+    .kanban-card .todo-title { font-size: 0.875rem; }
+    .kanban-card .todo-actions { opacity: 0; }
+    .kanban-card:hover .todo-body > .todo-header > .todo-actions { opacity: 1; }
 
     .kanban-card .todo-description {
-      font-size: 0.82rem;
+      font-size: 0.8125rem;
       margin-bottom: 6px;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -386,15 +658,15 @@
       overflow: hidden;
     }
 
-    .kanban-card .todo-meta { font-size: 0.75rem; }
+    .kanban-card .todo-meta { font-size: 0.6875rem; }
     .kanban-card .todo-attachments { margin-top: 8px; }
-    .kanban-card .att-chip { font-size: 0.72rem; max-width: 160px; }
+    .kanban-card .att-chip { font-size: 0.6875rem; max-width: 160px; }
 
     /* Kanban subtasks */
     .kanban-subtasks {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid #e5e7eb;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
     }
 
     .kanban-subtasks .kanban-subtasks {
@@ -403,54 +675,55 @@
       border-top: none;
       margin-left: 4px;
       padding-left: 10px;
-      border-left: 2px solid #e5e7eb;
+      border-left: 2px solid var(--border);
     }
 
     .kanban-subtask-header {
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: #9ca3af;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      color: var(--text-tertiary);
       margin-bottom: 6px;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.04em;
     }
 
     .kanban-subtask-item {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 0;
-      font-size: 0.82rem;
+      padding: 3px 0;
+      font-size: 0.8125rem;
     }
 
     .kanban-subtask-item .subtask-dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       flex-shrink: 0;
     }
 
-    .kanban-subtask-item .subtask-dot.pending { background: #f59e0b; }
-    .kanban-subtask-item .subtask-dot.in-progress { background: #3b82f6; }
-    .kanban-subtask-item .subtask-dot.done { background: #10b981; }
+    .kanban-subtask-item .subtask-dot.pending { background: var(--pending); }
+    .kanban-subtask-item .subtask-dot.in-progress { background: var(--progress); }
+    .kanban-subtask-item .subtask-dot.done { background: var(--done); }
 
     .kanban-subtask-item .subtask-text {
       flex: 1;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      color: var(--text-secondary);
     }
 
     .kanban-subtask-item.done .subtask-text {
       text-decoration: line-through;
-      opacity: 0.5;
+      opacity: 0.45;
     }
 
     .kanban-empty {
       text-align: center;
-      color: #9ca3af;
-      font-size: 0.82rem;
-      padding: 20px 0;
+      color: var(--text-tertiary);
+      font-size: 0.8125rem;
+      padding: 24px 0;
     }
 
     /* ── Modal ── */
@@ -458,43 +731,66 @@
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.4);
+      background: var(--overlay);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       z-index: 100;
       justify-content: center;
       align-items: center;
       padding: 16px;
     }
 
-    .modal-overlay.open { display: flex; }
-
-    .modal {
-      background: #fff;
-      border-radius: 12px;
-      padding: 28px;
-      width: 100%;
-      max-width: 460px;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    .modal-overlay.open {
+      display: flex;
+      animation: fadeIn 0.15s ease-out;
     }
 
-    .modal h2 { margin-bottom: 20px; font-size: 1.25rem; }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.2s ease-out;
+    }
+
+    .modal h2 {
+      margin-bottom: 24px;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
 
     .modal .parent-info {
-      font-size: 0.82rem;
-      color: #6366f1;
-      margin-bottom: 14px;
-      padding: 8px 12px;
-      background: #eef2ff;
-      border-radius: 6px;
+      font-size: 0.8125rem;
+      color: var(--accent);
+      margin-bottom: 16px;
+      padding: 10px 14px;
+      background: var(--accent-soft);
+      border-radius: var(--radius-sm);
+      font-weight: 500;
     }
 
     .modal label {
       display: block;
-      font-size: 0.85rem;
+      font-size: 0.8125rem;
       font-weight: 600;
-      margin-bottom: 4px;
-      color: #374151;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
     }
 
     .modal input[type="text"],
@@ -502,40 +798,46 @@
     .modal textarea,
     .modal select {
       width: 100%;
-      padding: 10px 12px;
-      border: 2px solid #d1d5db;
-      border-radius: 8px;
-      font-size: 0.95rem;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
       outline: none;
-      transition: border-color 0.2s;
+      transition: all var(--transition);
       font-family: inherit;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
     }
 
-    .modal textarea { resize: vertical; min-height: 70px; }
+    .modal textarea { resize: vertical; min-height: 80px; }
 
     .modal input:focus,
     .modal textarea:focus,
-    .modal select:focus { border-color: #6366f1; }
+    .modal select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
 
-    .file-upload-area { margin-bottom: 14px; }
+    .file-upload-area { margin-bottom: 16px; }
 
     .file-drop-zone {
-      border: 2px dashed #d1d5db;
-      border-radius: 8px;
-      padding: 16px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
       text-align: center;
       cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      color: #9ca3af;
-      font-size: 0.9rem;
+      transition: all var(--transition);
+      color: var(--text-tertiary);
+      font-size: 0.8125rem;
+      font-weight: 500;
     }
 
     .file-drop-zone:hover,
     .file-drop-zone.dragover {
-      border-color: #6366f1;
-      background: #f5f3ff;
-      color: #6366f1;
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
     }
 
     .file-drop-zone input[type="file"] { display: none; }
@@ -546,30 +848,32 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      background: #eef2ff;
+      background: var(--accent-soft);
       padding: 4px 10px;
       border-radius: 6px;
-      font-size: 0.78rem;
-      color: #4338ca;
+      font-size: 0.75rem;
+      color: var(--accent-text);
+      font-weight: 500;
     }
 
     .pending-file .remove-pending {
       background: none;
       border: none;
       cursor: pointer;
-      font-size: 0.85rem;
-      color: #9ca3af;
+      font-size: 0.8125rem;
+      color: var(--text-tertiary);
       padding: 0 2px;
+      transition: color var(--transition);
     }
 
-    .pending-file .remove-pending:hover { color: #ef4444; }
+    .pending-file .remove-pending:hover { color: var(--danger); }
 
-    .existing-attachments { margin-bottom: 14px; }
+    .existing-attachments { margin-bottom: 16px; }
 
     .existing-attachments .att-label {
-      font-size: 0.85rem;
+      font-size: 0.8125rem;
       font-weight: 600;
-      color: #374151;
+      color: var(--text-secondary);
       margin-bottom: 6px;
     }
 
@@ -581,54 +885,113 @@
     }
 
     .modal-buttons button {
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 0.95rem;
+      padding: 10px 22px;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
       font-weight: 600;
       cursor: pointer;
       border: none;
-      transition: background 0.2s;
+      font-family: inherit;
+      transition: all var(--transition);
     }
 
-    .btn-cancel { background: #e5e7eb; color: #374151; }
-    .btn-cancel:hover { background: #d1d5db; }
-    .btn-save { background: #6366f1; color: #fff; }
-    .btn-save:hover { background: #4f46e5; }
+    .btn-cancel {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
 
-    @media (max-width: 700px) {
+    .btn-cancel:hover { background: var(--border); color: var(--text-primary); }
+
+    .btn-save { background: var(--accent); color: #fff; }
+    .btn-save:hover { background: var(--accent-hover); }
+
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: var(--danger-hover); }
+
+    .btn-warning { background: var(--pending); color: #fff; }
+    .btn-warning:hover { opacity: 0.9; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .header-inner { flex-wrap: wrap; }
+      .stats-bar { flex-wrap: wrap; }
+      .stat-card { min-width: calc(50% - 8px); }
       .kanban-board.visible { grid-template-columns: 1fr; }
       .kanban-column { min-height: 80px; }
-      .subtask-list {
-        margin-left: 2px;
-        padding-left: 10px;
-      }
-      .subtask-list .subtask-list {
-        padding-left: 8px;
-      }
-      .subtask-list .todo-item {
-        padding: 10px;
-      }
+      .subtask-list { margin-left: 2px; padding-left: 12px; }
+      .subtask-list .subtask-list { padding-left: 10px; }
+      .subtask-list .todo-item { padding: 10px 12px; }
+      .app-shell { padding: 0 16px; }
+      .header-inner { padding: 12px 16px; }
+      .modal { padding: 24px; border-radius: var(--radius-lg); }
+    }
+
+    @media (max-width: 480px) {
+      .stats-bar { gap: 8px; }
+      .stat-card { padding: 12px 14px; }
+      .stat-value { font-size: 1.375rem; }
     }
   </style>
 </head>
 <body>
-  <div class="container list-view" id="appContainer">
-    <h1>Todo List</h1>
-
-    <div class="top-bar">
-      <div class="top-bar-left">
-        <div class="view-toggle" id="viewToggle">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="app-logo">
+        <div class="logo-icon">T</div>
+        Taskflow
+      </div>
+      <div class="header-spacer"></div>
+      <div class="header-controls">
+        <div class="segmented-control" id="viewToggle">
           <button class="active" data-view="list">List</button>
           <button data-view="board">Board</button>
         </div>
-        <div class="filters" id="filtersBar">
-          <button class="active" data-filter="all">All</button>
-          <button data-filter="pending">Pending</button>
-          <button data-filter="in-progress">In Progress</button>
-          <button data-filter="done">Done</button>
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+          <span id="themeIcon">&#9790;</span>
+        </button>
+        <button class="add-btn" id="openAdd">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+          New Task
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-shell list-view" id="appContainer">
+    <!-- Stats -->
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-card">
+        <div class="stat-value total-val" id="statTotal">0</div>
+        <div class="stat-label">Total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value pending-val" id="statPending">0</div>
+        <div class="stat-label">Pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value progress-val" id="statProgress">0</div>
+        <div class="stat-label">In Progress</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value done-val" id="statDone">0</div>
+        <div class="stat-label">Completed</div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill" style="width:0%"></div>
         </div>
       </div>
-      <button class="add-btn" id="openAdd">+ Add</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <span class="toolbar-label" id="toolbarLabel">All Tasks</span>
+      <div class="segmented-control" id="filtersBar">
+        <button class="active" data-filter="all">All</button>
+        <button data-filter="pending">Pending</button>
+        <button data-filter="in-progress">In Progress</button>
+        <button data-filter="done">Done</button>
+      </div>
     </div>
 
     <!-- List view -->
@@ -666,17 +1029,17 @@
   <!-- Modal -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
-      <h2 id="modalTitle">New Todo</h2>
+      <h2 id="modalTitle">New Task</h2>
       <div class="parent-info" id="parentInfo" style="display:none"></div>
       <form id="todoForm">
         <input type="hidden" id="editId">
         <input type="hidden" id="parentId">
 
         <label for="fieldTitle">Title *</label>
-        <input type="text" id="fieldTitle" required autocomplete="off">
+        <input type="text" id="fieldTitle" required autocomplete="off" placeholder="What needs to be done?">
 
         <label for="fieldDesc">Description</label>
-        <textarea id="fieldDesc"></textarea>
+        <textarea id="fieldDesc" placeholder="Add some details..."></textarea>
 
         <label for="fieldStatus">Status</label>
         <select id="fieldStatus">
@@ -712,13 +1075,13 @@
 
   <!-- Delete confirmation dialog -->
   <div class="modal-overlay" id="deleteDialogOverlay">
-    <div class="modal" style="max-width:400px">
-      <h2>Delete Todo</h2>
-      <p id="deleteDialogMsg" style="margin-bottom:18px;font-size:0.92rem;color:#374151;line-height:1.5"></p>
+    <div class="modal" style="max-width:420px">
+      <h2>Delete Task</h2>
+      <p id="deleteDialogMsg" style="margin-bottom:20px;font-size:0.875rem;color:var(--text-secondary);line-height:1.6"></p>
       <div class="modal-buttons" style="flex-direction:column;gap:8px">
-        <button class="btn-save" id="deleteCascadeBtn" style="background:#ef4444;text-align:center">Delete all</button>
-        <button class="btn-save" id="deleteReparentBtn" style="background:#f59e0b;color:#1a1a2e;text-align:center">Keep subtasks</button>
-        <button class="btn-cancel" id="deleteCancelBtn" style="text-align:center">Cancel</button>
+        <button class="btn-danger" id="deleteCascadeBtn" style="width:100%;text-align:center">Delete all</button>
+        <button class="btn-warning" id="deleteReparentBtn" style="width:100%;text-align:center">Keep subtasks</button>
+        <button class="btn-cancel" id="deleteCancelBtn" style="width:100%;text-align:center">Cancel</button>
       </div>
     </div>
   </div>
@@ -749,6 +1112,23 @@
     const pendingFilesEl = document.getElementById("pendingFiles");
     const existingAttachments = document.getElementById("existingAttachments");
     const existingAttList = document.getElementById("existingAttList");
+
+    // ── Theme ──
+    function setTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      document.getElementById("themeIcon").innerHTML = theme === "dark" ? "&#9728;" : "&#9790;";
+      localStorage.setItem("theme", theme);
+    }
+
+    document.getElementById("themeToggle").addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme");
+      setTheme(current === "dark" ? "light" : "dark");
+    });
+
+    // Init theme from preference
+    const savedTheme = localStorage.getItem("theme") ||
+      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    setTheme(savedTheme);
 
     // ── Data helpers ──
     async function fetchTodos() {
@@ -795,6 +1175,23 @@
       return s === "in-progress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1);
     }
 
+    function updateStats() {
+      const total = todos.length;
+      const pending = todos.filter(t => t.status === "pending").length;
+      const progress = todos.filter(t => t.status === "in-progress").length;
+      const done = todos.filter(t => t.status === "done").length;
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+      document.getElementById("statTotal").textContent = total;
+      document.getElementById("statPending").textContent = pending;
+      document.getElementById("statProgress").textContent = progress;
+      document.getElementById("statDone").textContent = done;
+      document.getElementById("progressFill").style.width = pct + "%";
+
+      const filterLabels = { all: "All Tasks", pending: "Pending Tasks", "in-progress": "In Progress", done: "Completed" };
+      document.getElementById("toolbarLabel").textContent = filterLabels[filter] || "All Tasks";
+    }
+
     function renderAttachmentChips(attachments, todoId) {
       if (!attachments || attachments.length === 0) return "";
       const chips = attachments.map(a => `
@@ -808,12 +1205,13 @@
 
     // ── Render ──
     function render() {
+      updateStats();
       if (viewMode === "list") renderList();
       else renderKanban();
     }
 
-    // Build the card body HTML (shared between list & kanban)
     function todoBodyHtml(t, showStatus) {
+      const calendarSvg = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="2"/><line x1="2" y1="7" x2="14" y2="7"/><line x1="5" y1="1" x2="5" y2="4"/><line x1="11" y1="1" x2="11" y2="4"/></svg>';
       return `
         <div class="todo-body">
           <div class="todo-header">
@@ -827,26 +1225,23 @@
           ${t.description ? `<div class="todo-description">${escapeHtml(t.description)}</div>` : ""}
           <div class="todo-meta">
             ${showStatus ? `<span class="status-badge ${t.status}">${statusLabel(t.status)}</span>` : ""}
-            ${t.dueDate ? `<span class="due-date ${isOverdue(t) ? "overdue" : ""}">Due: ${formatDate(t.dueDate)}</span>` : ""}
+            ${t.dueDate ? `<span class="due-date ${isOverdue(t) ? "overdue" : ""}">${calendarSvg} ${formatDate(t.dueDate)}</span>` : ""}
           </div>
           ${renderAttachmentChips(t.attachments, t.id)}
         </div>
       `;
     }
 
-    // Recursive list rendering
     function renderTodoTree(parentId, depth) {
       let items = getChildren(parentId);
       if (filter !== "all") {
         items = items.filter(t => {
           if (t.status === filter) return true;
-          // Also show if any descendant matches
           return getAllDescendants(t.id).some(d => d.status === filter);
         });
       }
       if (items.length === 0) return "";
 
-      const tag = depth === 0 ? "" : "";
       let html = depth === 0 ? "" : `<ul class="subtask-list">`;
 
       for (const t of items) {
@@ -884,7 +1279,7 @@
 
       if (filtered.length === 0) {
         const label = filter === "all" ? "" : statusLabel(filter).toLowerCase() + " ";
-        todoList.innerHTML = `<li class="empty">No ${label}todos yet.</li>`;
+        todoList.innerHTML = `<li class="empty"><div class="empty-icon">&#9744;</div>No ${label}tasks yet</li>`;
         return;
       }
 
@@ -910,7 +1305,6 @@
       todoList.innerHTML = html;
     }
 
-    // Kanban: only top-level items positioned by their status, subtasks shown inline
     function renderKanbanSubtasks(parentId, depth) {
       const children = getChildren(parentId);
       if (children.length === 0) return "";
@@ -923,10 +1317,10 @@
           <div class="kanban-subtask-item ${c.status}" data-id="${c.id}">
             <span class="subtask-dot ${c.status}"></span>
             <span class="subtask-text">${escapeHtml(c.title)}</span>
-            <span class="todo-actions">
-              <button class="add-subtask-btn" data-parent-id="${c.id}" title="Add subtask" style="font-size:0.78rem;padding:2px 4px">+ sub</button>
-              <button class="edit-btn" title="Edit" style="font-size:0.85rem;padding:2px 4px">&#9998;</button>
-              <button class="delete-btn" title="Delete" style="font-size:0.85rem;padding:2px 4px">&#10005;</button>
+            <span class="todo-actions" style="opacity:1">
+              <button class="add-subtask-btn" data-parent-id="${c.id}" title="Add subtask" style="font-size:0.72rem;padding:2px 4px">+ sub</button>
+              <button class="edit-btn" title="Edit" style="font-size:0.8rem;padding:2px 4px">&#9998;</button>
+              <button class="delete-btn" title="Delete" style="font-size:0.8rem;padding:2px 4px">&#10005;</button>
             </span>
           </div>
           ${renderKanbanSubtasks(c.id, depth + 1)}
@@ -971,12 +1365,12 @@
         appContainer.classList.remove("list-view");
         todoList.style.display = "none";
         kanbanBoard.classList.add("visible");
-        filtersBar.style.display = "none";
+        filtersBar.parentElement.style.display = "none";
       } else {
         appContainer.classList.add("list-view");
         todoList.style.display = "";
         kanbanBoard.classList.remove("visible");
-        filtersBar.style.display = "";
+        filtersBar.parentElement.style.display = "";
       }
       render();
     });
@@ -1066,15 +1460,13 @@
       renderPendingFiles();
 
       if (todo) {
-        // Editing existing
-        modalTitle.textContent = "Edit Todo";
+        modalTitle.textContent = "Edit Task";
         editId.value = todo.id;
         parentIdField.value = "";
         fieldTitle.value = todo.title;
         fieldDesc.value = todo.description || "";
         fieldStatus.value = todo.status;
         fieldDue.value = todo.dueDate || "";
-        // Show parent info
         if (todo.parentId) {
           const parent = todos.find(t => t.id === todo.parentId);
           parentInfo.textContent = "Subtask of: " + (parent ? parent.title : "Unknown");
@@ -1094,9 +1486,8 @@
           existingAttachments.style.display = "none";
         }
       } else {
-        // Creating new
         const isSubtask = newParentId != null;
-        modalTitle.textContent = isSubtask ? "New Subtask" : "New Todo";
+        modalTitle.textContent = isSubtask ? "New Subtask" : "New Task";
         editId.value = "";
         parentIdField.value = newParentId || "";
         todoForm.reset();
@@ -1190,11 +1581,10 @@
 
     function showDeleteDialog(todo) {
       deleteDialogTodo = todo;
-      const children = getChildren(todo.id);
       const allDesc = getAllDescendants(todo.id);
       deleteDialogMsg.innerHTML = `<strong>${escapeHtml(todo.title)}</strong> has ${allDesc.length} subtask${allDesc.length > 1 ? "s" : ""}.<br><br>` +
-        `<strong>Delete all</strong> removes this todo and all its subtasks.<br>` +
-        `<strong>Keep subtasks</strong> moves them ${todo.parentId ? "under the parent todo" : "to the top level"}.`;
+        `<strong>Delete all</strong> removes this task and all its subtasks.<br>` +
+        `<strong>Keep subtasks</strong> moves them ${todo.parentId ? "under the parent task" : "to the top level"}.`;
       deleteDialogOverlay.classList.add("open");
     }
 
@@ -1225,7 +1615,6 @@
     // ── Card actions (works for both views) ──
     function handleCardActions(root) {
       root.addEventListener("click", async e => {
-        // Toggle collapse
         const toggleBtn = e.target.closest(".toggle-children");
         if (toggleBtn) {
           const tid = Number(toggleBtn.dataset.toggleId);
@@ -1235,14 +1624,12 @@
           return;
         }
 
-        // Add subtask
         const subBtn = e.target.closest(".add-subtask-btn");
         if (subBtn) {
           openModal(null, subBtn.dataset.parentId);
           return;
         }
 
-        // Remove attachment
         const attBtn = e.target.closest(".att-remove");
         if (attBtn) {
           await fetch(`/api/todos/${attBtn.dataset.todoId}/attachments/${attBtn.dataset.attId}`, { method: "DELETE" });
@@ -1250,7 +1637,6 @@
           return;
         }
 
-        // Find the closest data-id element to the clicked button
         const actionBtn = e.target.closest(".edit-btn") || e.target.closest(".delete-btn");
         if (!actionBtn) return;
         const card = actionBtn.closest("[data-id]");
@@ -1277,6 +1663,14 @@
 
     handleCardActions(todoList);
     handleCardActions(kanbanBoard);
+
+    // Keyboard shortcut: Escape closes modals
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") {
+        if (deleteDialogOverlay.classList.contains("open")) closeDeleteDialog();
+        else if (modalOverlay.classList.contains("open")) closeModal();
+      }
+    });
 
     fetchTodos();
   </script>
