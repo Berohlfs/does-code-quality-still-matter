@@ -4,12 +4,11 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { users } from "@/db/schemas";
 import { signToken, setAuthCookie } from "@/app/api/auth/_helpers/jwt";
-import { signInSchema } from "@/app/(auth)/sign-in/_validations/sign-in-schema";
-import type { AuthResponseDto } from "@/dto/user";
+import { signInDto, type AuthResponseDto } from "@/dto/user";
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const result = signInSchema.safeParse(body);
+  const result = signInDto.safeParse(body);
 
   if (!result.success) {
     return NextResponse.json(
