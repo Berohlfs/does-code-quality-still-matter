@@ -15,15 +15,20 @@ interface TodoListProps {
 
 export function TodoList({ onEdit, onDelete, onAddSubtask }: TodoListProps) {
   const { data: todos = [] } = useTodos();
-  const { filter } = useDashboard();
+  const { filter, activeFolder } = useDashboard();
 
-  let rootItems = getRootTodos(todos);
+  const folderTodos =
+    activeFolder === null
+      ? todos
+      : todos.filter((t) => t.folderId === activeFolder);
+
+  let rootItems = getRootTodos(folderTodos);
 
   if (filter !== "all") {
     rootItems = rootItems.filter(
       (t) =>
         t.status === filter ||
-        getAllDescendants(todos, t.id).some((d) => d.status === filter)
+        getAllDescendants(folderTodos, t.id).some((d) => d.status === filter)
     );
   }
 

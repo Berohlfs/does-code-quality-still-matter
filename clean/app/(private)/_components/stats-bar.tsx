@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { useTodos } from "@/app/(private)/_hooks/use-todos";
+import { useDashboard } from "./dashboard-context";
 
 const STATUS_STYLES = {
   total: "text-foreground",
@@ -12,7 +13,13 @@ const STATUS_STYLES = {
 } as const;
 
 export function StatsBar() {
-  const { data: todos = [] } = useTodos();
+  const { data: allTodos = [] } = useTodos();
+  const { activeFolder } = useDashboard();
+
+  const todos =
+    activeFolder === null
+      ? allTodos
+      : allTodos.filter((t) => t.folderId === activeFolder);
 
   const stats = useMemo(() => {
     const total = todos.length;

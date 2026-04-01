@@ -9,6 +9,7 @@ export type TodoStatus = z.infer<typeof todoStatus>;
 export const todoDto = z.object({
   id: z.number(),
   parentId: z.number().nullable(),
+  folderId: z.number().nullable(),
   title: z.string(),
   description: z.string(),
   status: todoStatus,
@@ -24,6 +25,7 @@ export const createTodoBodyDto = z.object({
   status: todoStatus.optional(),
   dueDate: z.string().nullable().optional(),
   parentId: z.number().nullable().optional(),
+  folderId: z.number().nullable().optional(),
 });
 
 export type CreateTodoBody = z.infer<typeof createTodoBodyDto>;
@@ -33,6 +35,7 @@ export const updateTodoBodyDto = z.object({
   description: z.string().trim().optional(),
   status: todoStatus.optional(),
   dueDate: z.string().nullable().optional(),
+  folderId: z.number().nullable().optional(),
 });
 
 export type UpdateTodoBody = z.infer<typeof updateTodoBodyDto>;

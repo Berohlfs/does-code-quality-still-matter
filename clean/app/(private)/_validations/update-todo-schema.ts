@@ -6,6 +6,7 @@ export const updateTodoSchema = z.object({
   description: z.string().trim().optional(),
   status: todoStatus.optional(),
   dueDate: z.string().nullable().optional(),
+  folderId: z.number().nullable().optional(),
 });
 
 export type UpdateTodoInput = z.infer<typeof updateTodoSchema>;

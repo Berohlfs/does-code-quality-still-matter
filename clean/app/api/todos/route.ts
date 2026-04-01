@@ -28,6 +28,7 @@ export async function GET() {
   const result: TodoDto[] = rows.map((t) => ({
     id: t.id,
     parentId: t.parentId,
+    folderId: t.folderId ?? null,
     title: t.title,
     description: t.description ?? "",
     status: (t.status ?? "pending") as TodoDto["status"],
@@ -57,7 +58,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const { title, description, status, dueDate, parentId } = result.data;
+  const { title, description, status, dueDate, parentId, folderId } =
+    result.data;
 
   if (parentId) {
     const parent = await db
@@ -80,6 +82,7 @@ export async function POST(request: Request) {
     id,
     userId: user.id,
     parentId: parentId ?? null,
+    folderId: folderId ?? null,
     title,
     description: description ?? "",
     status: status ?? "pending",
@@ -89,6 +92,7 @@ export async function POST(request: Request) {
   const todo: TodoDto = {
     id,
     parentId: parentId ?? null,
+    folderId: folderId ?? null,
     title,
     description: description ?? "",
     status: status ?? "pending",

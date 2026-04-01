@@ -7,6 +7,7 @@ export const createTodoSchema = z.object({
   status: todoStatus.optional(),
   dueDate: z.string().nullable().optional(),
   parentId: z.number().nullable().optional(),
+  folderId: z.number().nullable().optional(),
 });
 
 export type CreateTodoInput = z.infer<typeof createTodoSchema>;

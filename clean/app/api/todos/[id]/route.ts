@@ -53,10 +53,12 @@ export async function PUT(request: Request, { params }: { params: Params }) {
   const status = updates.status ?? existing.status;
   const dueDate =
     updates.dueDate !== undefined ? updates.dueDate : existing.dueDate;
+  const folderId =
+    updates.folderId !== undefined ? updates.folderId : existing.folderId;
 
   await db
     .update(todos)
-    .set({ title, description, status, dueDate })
+    .set({ title, description, status, dueDate, folderId })
     .where(and(eq(todos.id, id), eq(todos.userId, user.id)));
 
   const atts = await db
@@ -67,6 +69,7 @@ export async function PUT(request: Request, { params }: { params: Params }) {
   const response: TodoDto = {
     id,
     parentId: existing.parentId,
+    folderId: folderId ?? null,
     title,
     description,
     status: status as TodoDto["status"],

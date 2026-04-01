@@ -6,10 +6,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createTodoSchema } from "../_validations/create-todo-schema";
 import type { TodoDto, CreateTodoBody } from "@/dto/todo";
 import { useTodos } from "@/app/(private)/_hooks/use-todos";
+import { useFolders } from "@/app/(private)/_hooks/use-folders";
 import { useCreateTodo } from "@/app/(private)/_hooks/use-create-todo";
 import { useUpdateTodo } from "@/app/(private)/_hooks/use-update-todo";
 import { useUploadAttachments } from "@/app/(private)/_hooks/use-upload-attachments";
 import { useDeleteAttachment } from "@/app/(private)/_hooks/use-delete-attachment";
+import { useDashboard } from "./dashboard-context";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +49,8 @@ export function TodoDialog({
   parentId,
 }: TodoDialogProps) {
   const { data: todos = [] } = useTodos();
+  const { data: folders = [] } = useFolders();
+  const { activeFolder } = useDashboard();
   const createTodo = useCreateTodo();
   const updateTodo = useUpdateTodo();
   const uploadAttachments = useUploadAttachments();
@@ -69,6 +73,7 @@ export function TodoDialog({
       status: "pending",
       dueDate: null,
       parentId: null,
+      folderId: null,
     },
   });
 
@@ -81,6 +86,7 @@ export function TodoDialog({
           status: editTodo.status,
           dueDate: editTodo.dueDate,
           parentId: editTodo.parentId,
+          folderId: editTodo.folderId,
         });
       } else {
         reset({
@@ -89,11 +95,12 @@ export function TodoDialog({
           status: "pending",
           dueDate: null,
           parentId: parentId ?? null,
+          folderId: activeFolder,
         });
       }
       setPendingFiles([]);
     }
-  }, [open, editTodo, parentId, reset]);
+  }, [open, editTodo, parentId, activeFolder, reset]);
 
   async function onSubmit(data: CreateTodoBody) {
     try {
@@ -105,6 +112,7 @@ export function TodoDialog({
             description: data.description,
             status: data.status,
             dueDate: data.dueDate,
+            folderId: data.folderId,
           },
         });
 
@@ -239,6 +247,36 @@ export function TodoDialog({
               </Field>
             )}
           />
+
+          {folders.length > 0 && (
+            <Controller
+              name="folderId"
+              control={control}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel>Folder</FieldLabel>
+                  <Select
+                    value={field.value != null ? String(field.value) : "__none__"}
+                    onValueChange={(v) =>
+                      field.onChange(v === "__none__" ? null : Number(v))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">No Folder</SelectItem>
+                      {folders.map((f) => (
+                        <SelectItem key={f.id} value={String(f.id)}>
+                          {f.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              )}
+            />
+          )}
 
           {isEditing && editTodo!.attachments.length > 0 && (
             <div>

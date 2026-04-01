@@ -3,6 +3,7 @@
 import { useTodos } from "@/app/(private)/_hooks/use-todos";
 import { useUpdateTodo } from "@/app/(private)/_hooks/use-update-todo";
 import { getRootTodos, getChildren } from "@/app/(private)/_helpers/todos";
+import { useDashboard } from "./dashboard-context";
 import { TodoBody } from "./todo-item";
 import type { TodoDto } from "@/dto/todo";
 import type { TodoStatus } from "../_validations/todo-status";
@@ -22,8 +23,15 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ onEdit, onDelete, onAddSubtask }: KanbanBoardProps) {
   const { data: todos = [] } = useTodos();
+  const { activeFolder } = useDashboard();
   const updateTodo = useUpdateTodo();
-  const rootTodos = getRootTodos(todos);
+
+  const folderTodos =
+    activeFolder === null
+      ? todos
+      : todos.filter((t) => t.folderId === activeFolder);
+
+  const rootTodos = getRootTodos(folderTodos);
 
   function handleDrop(todoId: number, newStatus: TodoStatus) {
     updateTodo.mutate(

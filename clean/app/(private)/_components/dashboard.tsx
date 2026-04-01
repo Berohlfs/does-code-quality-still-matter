@@ -10,6 +10,7 @@ import { TodoList } from "./todo-list";
 import { KanbanBoard } from "./kanban-board";
 import { TodoDialog } from "./todo-dialog";
 import { DeleteDialog } from "./delete-dialog";
+import { FolderSidebar } from "./folder-sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TodoDto } from "@/dto/todo";
 
@@ -59,41 +60,47 @@ function DashboardContent() {
 
   if (isLoading) {
     return (
-      <main className="mx-auto max-w-5xl space-y-5 px-6 py-8">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 rounded-xl" />
-          ))}
-        </div>
-        <div className="space-y-2">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-xl" />
-          ))}
-        </div>
-      </main>
+      <div className="flex flex-1">
+        <FolderSidebar />
+        <main className="mx-auto max-w-5xl flex-1 space-y-5 px-6 py-8">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 rounded-xl" />
+            ))}
+          </div>
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 rounded-xl" />
+            ))}
+          </div>
+        </main>
+      </div>
     );
   }
 
   return (
     <>
-      <main className="mx-auto max-w-5xl space-y-5 px-6 py-8">
-        <StatsBar />
-        <Toolbar />
+      <div className="flex flex-1">
+        <FolderSidebar />
+        <main className="mx-auto max-w-5xl flex-1 space-y-5 px-6 py-8">
+          <StatsBar />
+          <Toolbar />
 
-        {viewMode === "list" ? (
-          <TodoList
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onAddSubtask={handleAddSubtask}
-          />
-        ) : (
-          <KanbanBoard
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onAddSubtask={handleAddSubtask}
-          />
-        )}
-      </main>
+          {viewMode === "list" ? (
+            <TodoList
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onAddSubtask={handleAddSubtask}
+            />
+          ) : (
+            <KanbanBoard
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onAddSubtask={handleAddSubtask}
+            />
+          )}
+        </main>
+      </div>
 
       <TodoDialog
         open={dialogOpen}
