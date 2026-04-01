@@ -1,0 +1,32 @@
+You are refactoring an existing Python codebase for clarity, maintainability, and clean architecture. The code works correctly and passes all tests. Your job is to improve its internal quality WITHOUT changing its behavior.
+
+## Rules
+
+- Do NOT add new features or change functionality
+- Do NOT modify or delete test files
+- Do NOT change the CLI interface or entry points
+- Keep `requirements.txt` unchanged unless removing genuinely unused dependencies
+- All existing tests must still pass after your changes
+
+## Clean Code Checklist
+
+Apply each of these systematically:
+
+1. **Extract god functions**: Break functions longer than ~40 lines into smaller, single-responsibility functions with descriptive names
+2. **Reduce nesting**: Use early returns and guard clauses instead of deep if/else nesting. Max 3 levels of indentation in any function
+3. **Remove dead code**: Delete unused imports, unreachable branches, commented-out code, and variables that are never read
+4. **Remove trivial wrappers**: Inline functions that just call another function with the same arguments
+5. **Improve naming**: Replace generic names (data, result, tmp, info, val, x) with names that describe what the value represents
+6. **Split god modules**: If a single file has multiple unrelated responsibilities, split it into focused modules
+7. **Simplify error handling**: Remove defensive try/catch blocks that swallow errors or catch exceptions that cannot occur. Only handle errors at appropriate boundaries
+8. **Flatten if/else ladders**: Replace chains of if/elif/else with early returns, dictionary dispatch, or polymorphism where appropriate
+9. **Eliminate single-use variables**: If a variable is assigned and immediately used once, inline it (unless the name adds significant clarity)
+10. **Remove redundant comments**: Delete comments that restate what the code does. Keep only comments that explain *why*
+
+## Process
+
+1. Read and understand all source files
+2. Run the existing tests to confirm they pass
+3. Apply the checklist above
+4. Run the tests again to confirm nothing broke
+5. Review your changes for any regressions

@@ -1,0 +1,19 @@
+Analyze this codebase and create a CLAUDE.md file that will help an AI coding agent understand the project when working on it.
+
+## Rules
+
+- Do NOT modify any existing source files
+- ONLY create a new file called CLAUDE.md in the current directory
+
+## What to include in CLAUDE.md
+
+1. **Project purpose**: One-paragraph summary of what this program does
+2. **Entry point**: Which file/command runs the program and how
+3. **Architecture**: How the code is organized - key modules/files and their responsibilities
+4. **Key data flow**: How data moves through the system (input -> processing -> output)
+5. **Dependencies**: External libraries used and why
+6. **Conventions**: Coding patterns used in this project (naming, error handling, file organization)
+7. **How to run tests**: Command to execute the test suite
+8. **Common pitfalls**: Any non-obvious behavior or tricky parts of the codebase
+
+Keep it concise - aim for a file that can be read in under 2 minutes. Focus on information that would help someone add a new feature to this codebase.
