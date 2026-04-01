@@ -1538,6 +1538,25 @@
     }
 
     .avatar-dropdown-logout:hover { background: var(--danger-bg); }
+
+    /* ── Language Selector ── */
+    .lang-select {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all var(--transition);
+      outline: none;
+      flex-shrink: 0;
+    }
+
+    .lang-select:hover { border-color: var(--border-hover); color: var(--text-primary); }
+    .lang-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
   </style>
 </head>
 <body>
@@ -1587,12 +1606,17 @@
       </div>
       <div class="header-spacer"></div>
       <div class="header-controls">
+        <select class="lang-select" id="langSelect">
+          <option value="en">EN</option>
+          <option value="pt-BR">PT-BR</option>
+          <option value="es">ES</option>
+        </select>
         <button class="theme-toggle" id="themeToggle" title="Toggle theme">
           <span id="themeIcon">&#9790;</span>
         </button>
         <button class="add-btn" id="openAdd">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
-          New
+          <span id="addBtnLabel">New</span>
         </button>
         <div class="user-menu" id="userMenu">
           <button class="avatar-btn" id="avatarBtn"></button>
@@ -1715,10 +1739,10 @@
           <div class="todo-attachments" id="existingAttList"></div>
         </div>
 
-        <label>Attachments</label>
+        <label id="attachmentsLabel">Attachments</label>
         <div class="file-upload-area">
           <div class="file-drop-zone" id="dropZone">
-            Click or drag files here (max 10 MB each)
+            <span id="dropZoneText">Click or drag files here (max 10 MB each)</span>
             <input type="file" id="fileInput" multiple>
           </div>
           <div class="pending-files" id="pendingFiles"></div>
@@ -1749,6 +1773,390 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
+    // ── Translations ──
+    const translations = {
+      en: {
+        "auth.subtitle": "Sign in to manage your tasks",
+        "auth.signin": "Sign In",
+        "auth.email": "Email",
+        "auth.password": "Password",
+        "auth.emailPlaceholder": "you@example.com",
+        "auth.passwordPlaceholder": "Your password",
+        "auth.noAccount": "Don't have an account?",
+        "auth.signupLink": "Sign up",
+        "auth.createAccount": "Create Account",
+        "auth.name": "Name",
+        "auth.namePlaceholder": "Your name",
+        "auth.passwordHint": "At least 6 characters",
+        "auth.hasAccount": "Already have an account?",
+        "auth.signinLink": "Sign in",
+        "auth.signingIn": "Signing in...",
+        "auth.creatingAccount": "Creating account...",
+        "header.new": "New",
+        "header.toggleTheme": "Toggle theme",
+        "header.logout": "Log out",
+        "stats.total": "Total",
+        "stats.pending": "Pending",
+        "stats.inProgress": "In Progress",
+        "stats.completed": "Completed",
+        "toolbar.allTasks": "All Tasks",
+        "toolbar.pendingTasks": "Pending Tasks",
+        "toolbar.inProgressTasks": "In Progress",
+        "toolbar.completedTasks": "Completed",
+        "toolbar.list": "List",
+        "toolbar.board": "Board",
+        "filter.all": "All",
+        "filter.pending": "Pending",
+        "filter.inProgress": "In Progress",
+        "filter.done": "Done",
+        "kanban.pending": "Pending",
+        "kanban.inProgress": "In Progress",
+        "kanban.done": "Done",
+        "kanban.noItems": "No items",
+        "kanban.subtasks": "Subtasks",
+        "modal.newTask": "New Task",
+        "modal.editTask": "Edit Task",
+        "modal.newSubtask": "New Subtask",
+        "modal.subtaskOf": "Subtask of:",
+        "modal.title": "Title *",
+        "modal.titlePlaceholder": "What needs to be done?",
+        "modal.description": "Description",
+        "modal.descPlaceholder": "Add some details...",
+        "modal.status": "Status",
+        "modal.statusPending": "Pending",
+        "modal.statusInProgress": "In Progress",
+        "modal.statusDone": "Done",
+        "modal.dueDate": "Due Date",
+        "modal.currentAttachments": "Current Attachments",
+        "modal.attachments": "Attachments",
+        "modal.dropZone": "Click or drag files here (max 10 MB each)",
+        "modal.cancel": "Cancel",
+        "modal.save": "Save",
+        "modal.saving": "Saving...",
+        "delete.title": "Delete Task",
+        "delete.deleteAll": "Delete all",
+        "delete.deleteAllDesc": "removes this task and all its subtasks.",
+        "delete.keepSubtasks": "Keep subtasks",
+        "delete.keepSubtasksParent": "moves them under the parent task.",
+        "delete.keepSubtasksTop": "moves them to the top level.",
+        "delete.cancel": "Cancel",
+        "delete.deleting": "Deleting...",
+        "action.addSubtask": "Add subtask",
+        "action.addSub": "+ sub",
+        "action.edit": "Edit",
+        "action.delete": "Delete",
+        "action.remove": "Remove",
+        "toast.loadFailed": "Failed to load tasks",
+        "toast.created": "Task created",
+        "toast.updated": "Task updated",
+        "toast.movedToPending": "Moved to Pending",
+        "toast.movedToInProgress": "Moved to In Progress",
+        "toast.movedToDone": "Moved to Done",
+        "toast.statusFailed": "Failed to update status",
+        "toast.cascadeDeleted": "Task and subtasks deleted",
+        "toast.deleteFailed": "Delete failed",
+        "toast.reparentDeleted": "Task deleted, subtasks kept",
+        "toast.deleted": "Task deleted",
+        "toast.error": "Something went wrong",
+        "status.pending": "Pending",
+        "status.inProgress": "In Progress",
+        "status.done": "Done",
+        "empty.noTasks": "No tasks yet",
+        "empty.noPendingTasks": "No pending tasks yet",
+        "empty.noInProgressTasks": "No in progress tasks yet",
+        "empty.noDoneTasks": "No completed tasks yet",
+        "deleteDialog.hasSubtasks": "has {count} subtask(s).",
+      },
+      "pt-BR": {
+        "auth.subtitle": "Entre para gerenciar suas tarefas",
+        "auth.signin": "Entrar",
+        "auth.email": "E-mail",
+        "auth.password": "Senha",
+        "auth.emailPlaceholder": "voce@exemplo.com",
+        "auth.passwordPlaceholder": "Sua senha",
+        "auth.noAccount": "Não tem uma conta?",
+        "auth.signupLink": "Cadastre-se",
+        "auth.createAccount": "Criar Conta",
+        "auth.name": "Nome",
+        "auth.namePlaceholder": "Seu nome",
+        "auth.passwordHint": "Pelo menos 6 caracteres",
+        "auth.hasAccount": "Já tem uma conta?",
+        "auth.signinLink": "Entrar",
+        "auth.signingIn": "Entrando...",
+        "auth.creatingAccount": "Criando conta...",
+        "header.new": "Novo",
+        "header.toggleTheme": "Alternar tema",
+        "header.logout": "Sair",
+        "stats.total": "Total",
+        "stats.pending": "Pendentes",
+        "stats.inProgress": "Em Progresso",
+        "stats.completed": "Concluídas",
+        "toolbar.allTasks": "Todas as Tarefas",
+        "toolbar.pendingTasks": "Tarefas Pendentes",
+        "toolbar.inProgressTasks": "Em Progresso",
+        "toolbar.completedTasks": "Concluídas",
+        "toolbar.list": "Lista",
+        "toolbar.board": "Quadro",
+        "filter.all": "Todas",
+        "filter.pending": "Pendentes",
+        "filter.inProgress": "Em Progresso",
+        "filter.done": "Concluídas",
+        "kanban.pending": "Pendentes",
+        "kanban.inProgress": "Em Progresso",
+        "kanban.done": "Concluídas",
+        "kanban.noItems": "Nenhum item",
+        "kanban.subtasks": "Subtarefas",
+        "modal.newTask": "Nova Tarefa",
+        "modal.editTask": "Editar Tarefa",
+        "modal.newSubtask": "Nova Subtarefa",
+        "modal.subtaskOf": "Subtarefa de:",
+        "modal.title": "Título *",
+        "modal.titlePlaceholder": "O que precisa ser feito?",
+        "modal.description": "Descrição",
+        "modal.descPlaceholder": "Adicione alguns detalhes...",
+        "modal.status": "Status",
+        "modal.statusPending": "Pendente",
+        "modal.statusInProgress": "Em Progresso",
+        "modal.statusDone": "Concluída",
+        "modal.dueDate": "Data de Vencimento",
+        "modal.currentAttachments": "Anexos Atuais",
+        "modal.attachments": "Anexos",
+        "modal.dropZone": "Clique ou arraste arquivos aqui (máx 10 MB cada)",
+        "modal.cancel": "Cancelar",
+        "modal.save": "Salvar",
+        "modal.saving": "Salvando...",
+        "delete.title": "Excluir Tarefa",
+        "delete.deleteAll": "Excluir tudo",
+        "delete.deleteAllDesc": "remove esta tarefa e todas as suas subtarefas.",
+        "delete.keepSubtasks": "Manter subtarefas",
+        "delete.keepSubtasksParent": "move-as para a tarefa pai.",
+        "delete.keepSubtasksTop": "move-as para o nível principal.",
+        "delete.cancel": "Cancelar",
+        "delete.deleting": "Excluindo...",
+        "action.addSubtask": "Adicionar subtarefa",
+        "action.addSub": "+ sub",
+        "action.edit": "Editar",
+        "action.delete": "Excluir",
+        "action.remove": "Remover",
+        "toast.loadFailed": "Falha ao carregar tarefas",
+        "toast.created": "Tarefa criada",
+        "toast.updated": "Tarefa atualizada",
+        "toast.movedToPending": "Movida para Pendentes",
+        "toast.movedToInProgress": "Movida para Em Progresso",
+        "toast.movedToDone": "Movida para Concluídas",
+        "toast.statusFailed": "Falha ao atualizar status",
+        "toast.cascadeDeleted": "Tarefa e subtarefas excluídas",
+        "toast.deleteFailed": "Falha ao excluir",
+        "toast.reparentDeleted": "Tarefa excluída, subtarefas mantidas",
+        "toast.deleted": "Tarefa excluída",
+        "toast.error": "Algo deu errado",
+        "status.pending": "Pendente",
+        "status.inProgress": "Em Progresso",
+        "status.done": "Concluída",
+        "empty.noTasks": "Nenhuma tarefa ainda",
+        "empty.noPendingTasks": "Nenhuma tarefa pendente ainda",
+        "empty.noInProgressTasks": "Nenhuma tarefa em progresso ainda",
+        "empty.noDoneTasks": "Nenhuma tarefa concluída ainda",
+        "deleteDialog.hasSubtasks": "tem {count} subtarefa(s).",
+      },
+      es: {
+        "auth.subtitle": "Inicia sesión para gestionar tus tareas",
+        "auth.signin": "Iniciar Sesión",
+        "auth.email": "Correo electrónico",
+        "auth.password": "Contraseña",
+        "auth.emailPlaceholder": "tu@ejemplo.com",
+        "auth.passwordPlaceholder": "Tu contraseña",
+        "auth.noAccount": "¿No tienes una cuenta?",
+        "auth.signupLink": "Regístrate",
+        "auth.createAccount": "Crear Cuenta",
+        "auth.name": "Nombre",
+        "auth.namePlaceholder": "Tu nombre",
+        "auth.passwordHint": "Al menos 6 caracteres",
+        "auth.hasAccount": "¿Ya tienes una cuenta?",
+        "auth.signinLink": "Inicia sesión",
+        "auth.signingIn": "Iniciando sesión...",
+        "auth.creatingAccount": "Creando cuenta...",
+        "header.new": "Nuevo",
+        "header.toggleTheme": "Cambiar tema",
+        "header.logout": "Cerrar sesión",
+        "stats.total": "Total",
+        "stats.pending": "Pendientes",
+        "stats.inProgress": "En Progreso",
+        "stats.completed": "Completadas",
+        "toolbar.allTasks": "Todas las Tareas",
+        "toolbar.pendingTasks": "Tareas Pendientes",
+        "toolbar.inProgressTasks": "En Progreso",
+        "toolbar.completedTasks": "Completadas",
+        "toolbar.list": "Lista",
+        "toolbar.board": "Tablero",
+        "filter.all": "Todas",
+        "filter.pending": "Pendientes",
+        "filter.inProgress": "En Progreso",
+        "filter.done": "Completadas",
+        "kanban.pending": "Pendientes",
+        "kanban.inProgress": "En Progreso",
+        "kanban.done": "Completadas",
+        "kanban.noItems": "Sin elementos",
+        "kanban.subtasks": "Subtareas",
+        "modal.newTask": "Nueva Tarea",
+        "modal.editTask": "Editar Tarea",
+        "modal.newSubtask": "Nueva Subtarea",
+        "modal.subtaskOf": "Subtarea de:",
+        "modal.title": "Título *",
+        "modal.titlePlaceholder": "¿Qué necesitas hacer?",
+        "modal.description": "Descripción",
+        "modal.descPlaceholder": "Agrega algunos detalles...",
+        "modal.status": "Estado",
+        "modal.statusPending": "Pendiente",
+        "modal.statusInProgress": "En Progreso",
+        "modal.statusDone": "Completada",
+        "modal.dueDate": "Fecha de Vencimiento",
+        "modal.currentAttachments": "Archivos Adjuntos Actuales",
+        "modal.attachments": "Archivos Adjuntos",
+        "modal.dropZone": "Haz clic o arrastra archivos aquí (máx 10 MB cada uno)",
+        "modal.cancel": "Cancelar",
+        "modal.save": "Guardar",
+        "modal.saving": "Guardando...",
+        "delete.title": "Eliminar Tarea",
+        "delete.deleteAll": "Eliminar todo",
+        "delete.deleteAllDesc": "elimina esta tarea y todas sus subtareas.",
+        "delete.keepSubtasks": "Mantener subtareas",
+        "delete.keepSubtasksParent": "las mueve a la tarea padre.",
+        "delete.keepSubtasksTop": "las mueve al nivel principal.",
+        "delete.cancel": "Cancelar",
+        "delete.deleting": "Eliminando...",
+        "action.addSubtask": "Agregar subtarea",
+        "action.addSub": "+ sub",
+        "action.edit": "Editar",
+        "action.delete": "Eliminar",
+        "action.remove": "Eliminar",
+        "toast.loadFailed": "Error al cargar tareas",
+        "toast.created": "Tarea creada",
+        "toast.updated": "Tarea actualizada",
+        "toast.movedToPending": "Movida a Pendientes",
+        "toast.movedToInProgress": "Movida a En Progreso",
+        "toast.movedToDone": "Movida a Completadas",
+        "toast.statusFailed": "Error al actualizar estado",
+        "toast.cascadeDeleted": "Tarea y subtareas eliminadas",
+        "toast.deleteFailed": "Error al eliminar",
+        "toast.reparentDeleted": "Tarea eliminada, subtareas conservadas",
+        "toast.deleted": "Tarea eliminada",
+        "toast.error": "Algo salió mal",
+        "status.pending": "Pendiente",
+        "status.inProgress": "En Progreso",
+        "status.done": "Completada",
+        "empty.noTasks": "No hay tareas aún",
+        "empty.noPendingTasks": "No hay tareas pendientes aún",
+        "empty.noInProgressTasks": "No hay tareas en progreso aún",
+        "empty.noDoneTasks": "No hay tareas completadas aún",
+        "deleteDialog.hasSubtasks": "tiene {count} subtarea(s).",
+      }
+    };
+
+    let currentLang = localStorage.getItem("lang") || "en";
+
+    function t(key) {
+      return (translations[currentLang] && translations[currentLang][key]) || translations.en[key] || key;
+    }
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem("lang", lang);
+      document.documentElement.lang = lang;
+      document.getElementById("langSelect").value = lang;
+      applyTranslations();
+      if (todos.length > 0 || !isInitialLoad) render();
+    }
+
+    function applyTranslations() {
+      // Auth screen
+      document.querySelector(".auth-subtitle").textContent = t("auth.subtitle");
+      document.querySelector("#signinForm h2").textContent = t("auth.signin");
+      document.querySelector("#signinForm .btn-auth").textContent = t("auth.signin");
+      document.querySelector("#signinForm label[for='signinEmail']").textContent = t("auth.email");
+      document.querySelector("#signinForm label[for='signinPassword']").textContent = t("auth.password");
+      document.getElementById("signinEmail").placeholder = t("auth.emailPlaceholder");
+      document.getElementById("signinPassword").placeholder = t("auth.passwordPlaceholder");
+      document.querySelector("#signinForm .auth-switch").innerHTML = t("auth.noAccount") + ' <a id="showSignup">' + t("auth.signupLink") + "</a>";
+      document.getElementById("showSignup").addEventListener("click", () => {
+        signinForm.style.display = "none";
+        signupForm.style.display = "";
+        signupError.style.display = "none";
+      });
+
+      document.querySelector("#signupForm h2").textContent = t("auth.createAccount");
+      document.querySelector("#signupForm .btn-auth").textContent = t("auth.createAccount");
+      document.querySelector("#signupForm label[for='signupName']").textContent = t("auth.name");
+      document.querySelector("#signupForm label[for='signupEmail']").textContent = t("auth.email");
+      document.querySelector("#signupForm label[for='signupPassword']").textContent = t("auth.password");
+      document.getElementById("signupName").placeholder = t("auth.namePlaceholder");
+      document.getElementById("signupEmail").placeholder = t("auth.emailPlaceholder");
+      document.getElementById("signupPassword").placeholder = t("auth.passwordHint");
+      document.querySelector("#signupForm .auth-switch").innerHTML = t("auth.hasAccount") + ' <a id="showSignin">' + t("auth.signinLink") + "</a>";
+      document.getElementById("showSignin").addEventListener("click", () => {
+        signupForm.style.display = "none";
+        signinForm.style.display = "";
+        signinError.style.display = "none";
+      });
+
+      // Header
+      document.getElementById("addBtnLabel").textContent = t("header.new");
+      document.getElementById("themeToggle").title = t("header.toggleTheme");
+      document.getElementById("logoutBtn").textContent = t("header.logout");
+
+      // Stats bar labels (only if not in skeleton state)
+      var statLabels = document.querySelectorAll("#statsBar .stat-label");
+      if (statLabels.length === 4) {
+        statLabels[0].textContent = t("stats.total");
+        statLabels[1].textContent = t("stats.pending");
+        statLabels[2].textContent = t("stats.inProgress");
+        statLabels[3].textContent = t("stats.completed");
+      }
+
+      // View switch labels
+      var vsLabels = document.querySelectorAll("#viewToggle .view-switch-label");
+      vsLabels[0].textContent = t("toolbar.list");
+      vsLabels[1].textContent = t("toolbar.board");
+
+      // Filter buttons
+      var filterBtns = document.querySelectorAll("#filtersBar button");
+      filterBtns[0].textContent = t("filter.all");
+      filterBtns[1].textContent = t("filter.pending");
+      filterBtns[2].textContent = t("filter.inProgress");
+      filterBtns[3].textContent = t("filter.done");
+
+      // Kanban column headers
+      var kanbanHeaders = document.querySelectorAll(".kanban-column-header h3");
+      if (kanbanHeaders.length === 3) {
+        kanbanHeaders[0].textContent = t("kanban.pending");
+        kanbanHeaders[1].textContent = t("kanban.inProgress");
+        kanbanHeaders[2].textContent = t("kanban.done");
+      }
+
+      // Modal static labels
+      document.querySelector("label[for='fieldTitle']").textContent = t("modal.title");
+      document.getElementById("fieldTitle").placeholder = t("modal.titlePlaceholder");
+      document.querySelector("label[for='fieldDesc']").textContent = t("modal.description");
+      document.getElementById("fieldDesc").placeholder = t("modal.descPlaceholder");
+      document.querySelector("label[for='fieldStatus']").textContent = t("modal.status");
+      var statusOpts = document.getElementById("fieldStatus").options;
+      statusOpts[0].textContent = t("modal.statusPending");
+      statusOpts[1].textContent = t("modal.statusInProgress");
+      statusOpts[2].textContent = t("modal.statusDone");
+      document.querySelector("label[for='fieldDue']").textContent = t("modal.dueDate");
+      document.querySelector(".att-label").textContent = t("modal.currentAttachments");
+      document.getElementById("attachmentsLabel").textContent = t("modal.attachments");
+      document.getElementById("dropZoneText").textContent = t("modal.dropZone");
+      document.getElementById("cancelBtn").textContent = t("modal.cancel");
+      document.querySelector("#todoForm .btn-save").textContent = t("modal.save");
+
+      // Delete dialog
+      document.querySelector("#deleteDialogOverlay .modal h2").textContent = t("delete.title");
+      document.getElementById("deleteCascadeBtn").textContent = t("delete.deleteAll");
+      document.getElementById("deleteReparentBtn").textContent = t("delete.keepSubtasks");
+      document.getElementById("deleteCancelBtn").textContent = t("delete.cancel");
+    }
+
     // ── Auth state ──
     let authToken = localStorage.getItem("authToken");
     let currentUser = null;
@@ -1789,7 +2197,7 @@
       e.preventDefault();
       signinError.style.display = "none";
       const btn = signinForm.querySelector(".btn-auth");
-      btn.textContent = "Signing in...";
+      btn.textContent = t("auth.signingIn");
       btn.disabled = true;
       try {
         const res = await fetch("/api/auth/signin", {
@@ -1810,7 +2218,7 @@
         signinError.textContent = err.message;
         signinError.style.display = "";
       } finally {
-        btn.textContent = "Sign In";
+        btn.textContent = t("auth.signin");
         btn.disabled = false;
       }
     });
@@ -1819,7 +2227,7 @@
       e.preventDefault();
       signupError.style.display = "none";
       const btn = signupForm.querySelector(".btn-auth");
-      btn.textContent = "Creating account...";
+      btn.textContent = t("auth.creatingAccount");
       btn.disabled = true;
       try {
         const res = await fetch("/api/auth/signup", {
@@ -1841,7 +2249,7 @@
         signupError.textContent = err.message;
         signupError.style.display = "";
       } finally {
-        btn.textContent = "Create Account";
+        btn.textContent = t("auth.createAccount");
         btn.disabled = false;
       }
     });
@@ -1863,6 +2271,12 @@
     }
 
     document.getElementById("logoutBtn").addEventListener("click", logout);
+
+    // ── Language selector ──
+    document.getElementById("langSelect").value = currentLang;
+    document.getElementById("langSelect").addEventListener("change", e => {
+      setLanguage(e.target.value);
+    });
 
     // ── Avatar dropdown ──
     const avatarBtn = document.getElementById("avatarBtn");
@@ -1896,6 +2310,7 @@
 
     // ── Boot: check token validity ──
     async function boot() {
+      applyTranslations();
       if (authToken) {
         try {
           const res = await fetch("/api/auth/me", { headers: authHeaders() });
@@ -1989,10 +2404,10 @@
 
     function restoreStatsBar() {
       document.getElementById("statsBar").innerHTML = `
-        <div class="stat-card"><div class="stat-value total-val" id="statTotal">0</div><div class="stat-label">Total</div></div>
-        <div class="stat-card"><div class="stat-value pending-val" id="statPending">0</div><div class="stat-label">Pending</div></div>
-        <div class="stat-card"><div class="stat-value progress-val" id="statProgress">0</div><div class="stat-label">In Progress</div></div>
-        <div class="stat-card"><div class="stat-value done-val" id="statDone">0</div><div class="stat-label">Completed</div><div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div></div>
+        <div class="stat-card"><div class="stat-value total-val" id="statTotal">0</div><div class="stat-label">${t("stats.total")}</div></div>
+        <div class="stat-card"><div class="stat-value pending-val" id="statPending">0</div><div class="stat-label">${t("stats.pending")}</div></div>
+        <div class="stat-card"><div class="stat-value progress-val" id="statProgress">0</div><div class="stat-label">${t("stats.inProgress")}</div></div>
+        <div class="stat-card"><div class="stat-value done-val" id="statDone">0</div><div class="stat-label">${t("stats.completed")}</div><div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div></div>
       `;
     }
 
@@ -2009,7 +2424,7 @@
       } catch (err) {
         if (err.message === "Unauthorized") return;
         if (isInitialLoad) { restoreStatsBar(); isInitialLoad = false; }
-        showToast("Failed to load tasks", "error");
+        showToast(t("toast.loadFailed"), "error");
       }
     }
 
@@ -2033,7 +2448,8 @@
     function formatDate(dateStr) {
       if (!dateStr) return "";
       const d = new Date(dateStr + "T00:00:00");
-      return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+      const locale = currentLang === "pt-BR" ? "pt-BR" : currentLang === "es" ? "es" : undefined;
+      return d.toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" });
     }
 
     function formatSize(bytes) {
@@ -2048,7 +2464,10 @@
     }
 
     function statusLabel(s) {
-      return s === "in-progress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1);
+      if (s === "in-progress") return t("status.inProgress");
+      if (s === "pending") return t("status.pending");
+      if (s === "done") return t("status.done");
+      return s.charAt(0).toUpperCase() + s.slice(1);
     }
 
     function animateStatValue(el, newVal) {
@@ -2079,8 +2498,8 @@
       if (elDone) animateStatValue(elDone, done);
       if (elFill) elFill.style.width = pct + "%";
 
-      const filterLabels = { all: "All Tasks", pending: "Pending Tasks", "in-progress": "In Progress", done: "Completed" };
-      document.getElementById("toolbarLabel").textContent = filterLabels[filter] || "All Tasks";
+      const filterLabels = { all: t("toolbar.allTasks"), pending: t("toolbar.pendingTasks"), "in-progress": t("toolbar.inProgressTasks"), done: t("toolbar.completedTasks") };
+      document.getElementById("toolbarLabel").textContent = filterLabels[filter] || t("toolbar.allTasks");
     }
 
     function renderAttachmentChips(attachments, todoId) {
@@ -2088,7 +2507,7 @@
       const chips = attachments.map(a => `
         <span class="att-chip">
           <a href="${a.url}" target="_blank" title="${escapeHtml(a.originalName)} (${formatSize(a.size)})">${escapeHtml(a.originalName)}</a>
-          <button class="att-remove" data-todo-id="${todoId}" data-att-id="${a.id}" title="Remove">&#10005;</button>
+          <button class="att-remove" data-todo-id="${todoId}" data-att-id="${a.id}" title="${t("action.remove")}">&#10005;</button>
         </span>
       `).join("");
       return `<div class="todo-attachments">${chips}</div>`;
@@ -2101,24 +2520,24 @@
       else renderKanban();
     }
 
-    function todoBodyHtml(t, showStatus) {
+    function todoBodyHtml(todo, showStatus) {
       const calendarSvg = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="2"/><line x1="2" y1="7" x2="14" y2="7"/><line x1="5" y1="1" x2="5" y2="4"/><line x1="11" y1="1" x2="11" y2="4"/></svg>';
       return `
         <div class="todo-body">
           <div class="todo-header">
-            <span class="todo-title">${escapeHtml(t.title)}</span>
+            <span class="todo-title">${escapeHtml(todo.title)}</span>
             <span class="todo-actions">
-              <button class="add-subtask-btn" data-parent-id="${t.id}" title="Add subtask">+ sub</button>
-              <button class="edit-btn" title="Edit">&#9998;</button>
-              <button class="delete-btn" title="Delete">&#10005;</button>
+              <button class="add-subtask-btn" data-parent-id="${todo.id}" title="${t("action.addSubtask")}">${t("action.addSub")}</button>
+              <button class="edit-btn" title="${t("action.edit")}">&#9998;</button>
+              <button class="delete-btn" title="${t("action.delete")}">&#10005;</button>
             </span>
           </div>
-          ${t.description ? `<div class="todo-description">${escapeHtml(t.description)}</div>` : ""}
+          ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ""}
           <div class="todo-meta">
-            ${showStatus ? `<span class="status-badge ${t.status}">${statusLabel(t.status)}</span>` : ""}
-            ${t.dueDate ? `<span class="due-date ${isOverdue(t) ? "overdue" : ""}">${calendarSvg} ${formatDate(t.dueDate)}</span>` : ""}
+            ${showStatus ? `<span class="status-badge ${todo.status}">${statusLabel(todo.status)}</span>` : ""}
+            ${todo.dueDate ? `<span class="due-date ${isOverdue(todo) ? "overdue" : ""}">${calendarSvg} ${formatDate(todo.dueDate)}</span>` : ""}
           </div>
-          ${renderAttachmentChips(t.attachments, t.id)}
+          ${renderAttachmentChips(todo.attachments, todo.id)}
         </div>
       `;
     }
@@ -2135,20 +2554,20 @@
 
       let html = depth === 0 ? "" : `<ul class="subtask-list">`;
 
-      for (const t of items) {
-        const children = getChildren(t.id);
+      for (const item of items) {
+        const children = getChildren(item.id);
         const hasChildren = children.length > 0;
-        const isCollapsed = collapsed.has(t.id);
-        const childHtml = isCollapsed ? "" : renderTodoTree(t.id, depth + 1);
+        const isCollapsed = collapsed.has(item.id);
+        const childHtml = isCollapsed ? "" : renderTodoTree(item.id, depth + 1);
 
         const toggleBtn = hasChildren
-          ? `<button class="toggle-children" data-toggle-id="${t.id}">${isCollapsed ? "&#9654;" : "&#9660;"} <span class="child-count">${children.length}</span></button>`
+          ? `<button class="toggle-children" data-toggle-id="${item.id}">${isCollapsed ? "&#9654;" : "&#9660;"} <span class="child-count">${children.length}</span></button>`
           : "";
 
         html += `
-          <li class="todo-item status-${t.status}" data-id="${t.id}">
+          <li class="todo-item status-${item.status}" data-id="${item.id}">
             ${toggleBtn}
-            ${todoBodyHtml(t, true)}
+            ${todoBodyHtml(item, true)}
             ${childHtml}
           </li>
         `;
@@ -2169,26 +2588,26 @@
       }
 
       if (filtered.length === 0) {
-        const label = filter === "all" ? "" : statusLabel(filter).toLowerCase() + " ";
-        todoList.innerHTML = `<li class="empty"><div class="empty-icon">&#9744;</div>No ${label}tasks yet</li>`;
+        const emptyKeys = { all: "empty.noTasks", pending: "empty.noPendingTasks", "in-progress": "empty.noInProgressTasks", done: "empty.noDoneTasks" };
+        todoList.innerHTML = `<li class="empty"><div class="empty-icon">&#9744;</div>${t(emptyKeys[filter] || "empty.noTasks")}</li>`;
         return;
       }
 
       let html = "";
-      for (const t of filtered) {
-        const children = getChildren(t.id);
+      for (const item of filtered) {
+        const children = getChildren(item.id);
         const hasChildren = children.length > 0;
-        const isCollapsed = collapsed.has(t.id);
-        const childHtml = isCollapsed ? "" : renderTodoTree(t.id, 1);
+        const isCollapsed = collapsed.has(item.id);
+        const childHtml = isCollapsed ? "" : renderTodoTree(item.id, 1);
 
         const toggleBtn = hasChildren
-          ? `<button class="toggle-children" data-toggle-id="${t.id}">${isCollapsed ? "&#9654;" : "&#9660;"} <span class="child-count">${children.length}</span></button>`
+          ? `<button class="toggle-children" data-toggle-id="${item.id}">${isCollapsed ? "&#9654;" : "&#9660;"} <span class="child-count">${children.length}</span></button>`
           : "";
 
         html += `
-          <li class="todo-item status-${t.status}" data-id="${t.id}">
+          <li class="todo-item status-${item.status}" data-id="${item.id}">
             ${toggleBtn}
-            ${todoBodyHtml(t, true)}
+            ${todoBodyHtml(item, true)}
             ${childHtml}
           </li>
         `;
@@ -2202,16 +2621,16 @@
 
       const isTop = depth === 0;
       let html = `<div class="kanban-subtasks">`;
-      if (isTop) html += `<div class="kanban-subtask-header">Subtasks (${children.length})</div>`;
+      if (isTop) html += `<div class="kanban-subtask-header">${t("kanban.subtasks")} (${children.length})</div>`;
       for (const c of children) {
         html += `
           <div class="kanban-subtask-item ${c.status}" data-id="${c.id}">
             <span class="subtask-dot ${c.status}"></span>
             <span class="subtask-text">${escapeHtml(c.title)}</span>
             <span class="todo-actions" style="opacity:1">
-              <button class="add-subtask-btn" data-parent-id="${c.id}" title="Add subtask" style="font-size:0.72rem;padding:2px 4px">+ sub</button>
-              <button class="edit-btn" title="Edit" style="font-size:0.8rem;padding:2px 4px">&#9998;</button>
-              <button class="delete-btn" title="Delete" style="font-size:0.8rem;padding:2px 4px">&#10005;</button>
+              <button class="add-subtask-btn" data-parent-id="${c.id}" title="${t("action.addSubtask")}" style="font-size:0.72rem;padding:2px 4px">${t("action.addSub")}</button>
+              <button class="edit-btn" title="${t("action.edit")}" style="font-size:0.8rem;padding:2px 4px">&#9998;</button>
+              <button class="delete-btn" title="${t("action.delete")}" style="font-size:0.8rem;padding:2px 4px">&#10005;</button>
             </span>
           </div>
           ${renderKanbanSubtasks(c.id, depth + 1)}
@@ -2231,12 +2650,12 @@
         kanbanBoard.querySelector(`[data-count-status="${status}"]`).textContent = items.length;
 
         if (items.length === 0) {
-          col.innerHTML = `<div class="kanban-empty">No items</div>`;
+          col.innerHTML = `<div class="kanban-empty">${t("kanban.noItems")}</div>`;
         } else {
-          col.innerHTML = items.map(t => `
-            <div class="kanban-card status-${t.status}" data-id="${t.id}" draggable="true">
-              ${todoBodyHtml(t, false)}
-              ${renderKanbanSubtasks(t.id, 0)}
+          col.innerHTML = items.map(item => `
+            <div class="kanban-card status-${item.status}" data-id="${item.id}" draggable="true">
+              ${todoBodyHtml(item, false)}
+              ${renderKanbanSubtasks(item.id, 0)}
             </div>
           `).join("");
         }
@@ -2313,10 +2732,10 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: newStatus })
         });
-        const labels = { pending: "Pending", "in-progress": "In Progress", done: "Done" };
-        showToast(`Moved to ${labels[newStatus]}`, "info");
+        const toastKeys = { pending: "toast.movedToPending", "in-progress": "toast.movedToInProgress", done: "toast.movedToDone" };
+        showToast(t(toastKeys[newStatus]), "info");
         await fetchTodos();
-      } catch { showToast("Failed to update status", "error"); }
+      } catch { showToast(t("toast.statusFailed"), "error"); }
     });
 
     // ── File Drop Zone ──
@@ -2361,7 +2780,7 @@
       renderPendingFiles();
 
       if (todo) {
-        modalTitle.textContent = "Edit Task";
+        modalTitle.textContent = t("modal.editTask");
         editId.value = todo.id;
         parentIdField.value = "";
         fieldTitle.value = todo.title;
@@ -2370,7 +2789,7 @@
         fieldDue.value = todo.dueDate || "";
         if (todo.parentId) {
           const parent = todos.find(t => t.id === todo.parentId);
-          parentInfo.textContent = "Subtask of: " + (parent ? parent.title : "Unknown");
+          parentInfo.textContent = t("modal.subtaskOf") + " " + (parent ? parent.title : "Unknown");
           parentInfo.style.display = "";
         } else {
           parentInfo.style.display = "none";
@@ -2380,7 +2799,7 @@
           existingAttList.innerHTML = todo.attachments.map(a => `
             <span class="att-chip">
               <a href="${a.url}" target="_blank">${escapeHtml(a.originalName)}</a>
-              <button type="button" class="att-remove" data-todo-id="${todo.id}" data-att-id="${a.id}" title="Remove">&#10005;</button>
+              <button type="button" class="att-remove" data-todo-id="${todo.id}" data-att-id="${a.id}" title="${t("action.remove")}">&#10005;</button>
             </span>
           `).join("");
         } else {
@@ -2388,7 +2807,7 @@
         }
       } else {
         const isSubtask = newParentId != null;
-        modalTitle.textContent = isSubtask ? "New Subtask" : "New Task";
+        modalTitle.textContent = isSubtask ? t("modal.newSubtask") : t("modal.newTask");
         editId.value = "";
         parentIdField.value = newParentId || "";
         todoForm.reset();
@@ -2396,7 +2815,7 @@
         existingAttachments.style.display = "none";
         if (isSubtask) {
           const parent = todos.find(t => t.id === Number(newParentId));
-          parentInfo.textContent = "Subtask of: " + (parent ? parent.title : "Unknown");
+          parentInfo.textContent = t("modal.subtaskOf") + " " + (parent ? parent.title : "Unknown");
           parentInfo.style.display = "";
         } else {
           parentInfo.style.display = "none";
@@ -2443,7 +2862,7 @@
       const saveBtn = todoForm.querySelector(".btn-save");
       const originalText = saveBtn.textContent;
       saveBtn.classList.add("loading");
-      saveBtn.innerHTML = `<span class="btn-spinner"></span>Saving...`;
+      saveBtn.innerHTML = `<span class="btn-spinner"></span>${t("modal.saving")}`;
 
       try {
         const id = editId.value;
@@ -2469,10 +2888,10 @@
 
         await uploadFiles(todoId);
         closeModal();
-        showToast(id ? "Task updated" : "Task created", "success");
+        showToast(id ? t("toast.updated") : t("toast.created"), "success");
         await fetchTodos();
       } catch (err) {
-        showToast("Something went wrong", "error");
+        showToast(t("toast.error"), "error");
       } finally {
         saveBtn.classList.remove("loading");
         saveBtn.textContent = originalText;
@@ -2496,9 +2915,10 @@
     function showDeleteDialog(todo) {
       deleteDialogTodo = todo;
       const allDesc = getAllDescendants(todo.id);
-      deleteDialogMsg.innerHTML = `<strong>${escapeHtml(todo.title)}</strong> has ${allDesc.length} subtask${allDesc.length > 1 ? "s" : ""}.<br><br>` +
-        `<strong>Delete all</strong> removes this task and all its subtasks.<br>` +
-        `<strong>Keep subtasks</strong> moves them ${todo.parentId ? "under the parent task" : "to the top level"}.`;
+      const countText = t("deleteDialog.hasSubtasks").replace("{count}", allDesc.length);
+      deleteDialogMsg.innerHTML = `<strong>${escapeHtml(todo.title)}</strong> ${countText}<br><br>` +
+        `<strong>${t("delete.deleteAll")}</strong> ${t("delete.deleteAllDesc")}<br>` +
+        `<strong>${t("delete.keepSubtasks")}</strong> ${todo.parentId ? t("delete.keepSubtasksParent") : t("delete.keepSubtasksTop")}`;
       deleteDialogOverlay.classList.add("open");
     }
 
@@ -2512,13 +2932,13 @@
       const btn = document.getElementById("deleteCascadeBtn");
       const orig = btn.textContent;
       btn.classList.add("loading");
-      btn.innerHTML = `<span class="btn-spinner"></span>Deleting...`;
+      btn.innerHTML = `<span class="btn-spinner"></span>${t("delete.deleting")}`;
       try {
         await authFetch(`/api/todos/${deleteDialogTodo.id}?cascade=true`, { method: "DELETE" });
         closeDeleteDialog();
-        showToast("Task and subtasks deleted", "success");
+        showToast(t("toast.cascadeDeleted"), "success");
         await fetchTodos();
-      } catch { showToast("Delete failed", "error"); }
+      } catch { showToast(t("toast.deleteFailed"), "error"); }
       finally { btn.classList.remove("loading"); btn.textContent = orig; }
     });
 
@@ -2527,13 +2947,13 @@
       const btn = document.getElementById("deleteReparentBtn");
       const orig = btn.textContent;
       btn.classList.add("loading");
-      btn.innerHTML = `<span class="btn-spinner"></span>Deleting...`;
+      btn.innerHTML = `<span class="btn-spinner"></span>${t("delete.deleting")}`;
       try {
         await authFetch(`/api/todos/${deleteDialogTodo.id}?cascade=false`, { method: "DELETE" });
         closeDeleteDialog();
-        showToast("Task deleted, subtasks kept", "success");
+        showToast(t("toast.reparentDeleted"), "success");
         await fetchTodos();
-      } catch { showToast("Delete failed", "error"); }
+      } catch { showToast(t("toast.deleteFailed"), "error"); }
       finally { btn.classList.remove("loading"); btn.textContent = orig; }
     });
 
@@ -2582,9 +3002,9 @@
           } else {
             try {
               await authFetch(`/api/todos/${id}`, { method: "DELETE" });
-              showToast("Task deleted", "success");
+              showToast(t("toast.deleted"), "success");
               await fetchTodos();
-            } catch { showToast("Delete failed", "error"); }
+            } catch { showToast(t("toast.deleteFailed"), "error"); }
           }
         }
 
