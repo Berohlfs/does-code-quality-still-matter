@@ -6,8 +6,11 @@ const jwt = require("jsonwebtoken");
 const { neon } = require("@neondatabase/serverless");
 const { put, del } = require("@vercel/blob");
 const nodemailer = require("nodemailer");
+const { OAuth2Client } = require("google-auth-library");
 
 const JWT_SECRET = process.env.JWT_SECRET || "change-me-in-production";
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const mailTransporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -62,7 +65,7 @@ app.use(async (req, res, next) => {
           id BIGINT PRIMARY KEY,
           name TEXT NOT NULL,
           email TEXT UNIQUE NOT NULL,
-          password_hash TEXT NOT NULL,
+          password_hash TEXT,
           created_at TIMESTAMPTZ DEFAULT NOW()
         )
       `;
@@ -91,6 +94,10 @@ app.use(async (req, res, next) => {
       try {
         await sql`ALTER TABLE todos ADD COLUMN IF NOT EXISTS user_id BIGINT`;
       } catch (e) { /* column already exists */ }
+      // Allow null password_hash for Google sign-in users
+      try {
+        await sql`ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL`;
+      } catch (e) { /* already nullable */ }
       migrated = true;
     }
     next();
@@ -151,11 +158,52 @@ app.post("/api/auth/signin", async (req, res) => {
   if (rows.length === 0) return res.status(401).json({ error: "Invalid email or password" });
 
   const user = rows[0];
+  if (!user.password_hash) return res.status(401).json({ error: "This account uses Google sign-in" });
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) return res.status(401).json({ error: "Invalid email or password" });
 
   const userData = { id: Number(user.id), name: user.name, email: user.email };
   res.json({ token: signToken(userData), user: userData });
+});
+
+app.get("/api/auth/google-client-id", (req, res) => {
+  res.json({ clientId: GOOGLE_CLIENT_ID || null });
+});
+
+app.post("/api/auth/google", async (req, res) => {
+  const { credential } = req.body;
+  if (!credential) return res.status(400).json({ error: "Google credential is required" });
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const email = payload.email.toLowerCase();
+    const name = payload.name || email.split("@")[0];
+
+    const sql = getSQL();
+    const existing = await sql`SELECT * FROM users WHERE email = ${email}`;
+
+    if (existing.length > 0) {
+      const user = existing[0];
+      const userData = { id: Number(user.id), name: user.name, email: user.email };
+      return res.json({ token: signToken(userData), user: userData });
+    }
+
+    const id = Date.now();
+    await sql`
+      INSERT INTO users (id, name, email, password_hash)
+      VALUES (${id}, ${name}, ${email}, ${null})
+    `;
+
+    const user = { id, name, email };
+    res.status(201).json({ token: signToken(user), user });
+  } catch (err) {
+    console.error("Google auth error:", err.message);
+    res.status(401).json({ error: "Invalid Google credential" });
+  }
 });
 
 app.get("/api/auth/me", requireAuth, async (req, res) => {

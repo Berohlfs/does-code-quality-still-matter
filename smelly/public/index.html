@@ -1460,6 +1460,31 @@
 
     .auth-card .auth-switch a:hover { text-decoration: underline; }
 
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+      color: var(--text-tertiary);
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .auth-divider::before, .auth-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .google-signin-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+
     /* ── User avatar menu ── */
     .user-menu {
       position: relative;
@@ -1549,6 +1574,11 @@
         Taskflow
       </div>
       <p class="auth-subtitle">Sign in to manage your tasks</p>
+
+      <div class="google-signin-wrapper" id="googleSigninWrapper" style="display:none">
+        <div id="googleSigninBtn"></div>
+      </div>
+      <div class="auth-divider" id="authDivider" style="display:none">or</div>
 
       <!-- Sign In Form -->
       <form id="signinForm">
@@ -1748,10 +1778,61 @@
   <!-- Toast container -->
   <div class="toast-container" id="toastContainer"></div>
 
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
     // ── Auth state ──
     let authToken = localStorage.getItem("authToken");
     let currentUser = null;
+
+    // ── Google Sign-In ──
+    async function initGoogleSignIn() {
+      try {
+        const res = await fetch("/api/auth/google-client-id");
+        const { clientId } = await res.json();
+        if (!clientId) return;
+
+        document.getElementById("googleSigninWrapper").style.display = "";
+        document.getElementById("authDivider").style.display = "";
+
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleGoogleCredential,
+        });
+        google.accounts.id.renderButton(
+          document.getElementById("googleSigninBtn"),
+          { theme: "outline", size: "large", width: 320, text: "continue_with" }
+        );
+      } catch (err) {
+        console.error("Failed to init Google Sign-In:", err);
+      }
+    }
+
+    async function handleGoogleCredential(response) {
+      try {
+        const res = await fetch("/api/auth/google", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ credential: response.credential }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Google sign-in failed");
+        authToken = data.token;
+        currentUser = data.user;
+        localStorage.setItem("authToken", authToken);
+        showApp();
+      } catch (err) {
+        const errorEl = document.getElementById("signinError");
+        errorEl.textContent = err.message;
+        errorEl.style.display = "";
+      }
+    }
+
+    // Init Google button once the GIS script loads
+    if (window.google?.accounts) {
+      initGoogleSignIn();
+    } else {
+      window.addEventListener("load", () => setTimeout(initGoogleSignIn, 100));
+    }
 
     function authHeaders() {
       return authToken ? { "Authorization": "Bearer " + authToken } : {};
