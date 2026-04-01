@@ -87,6 +87,17 @@ app.use(async (req, res, next) => {
           size INTEGER NOT NULL
         )
       `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS api_tokens (
+          id TEXT PRIMARY KEY,
+          user_id BIGINT NOT NULL,
+          name TEXT NOT NULL,
+          token_hash TEXT NOT NULL,
+          token_prefix TEXT NOT NULL,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          last_used_at TIMESTAMPTZ
+        )
+      `;
       // Migrate existing tables: add user_id if missing
       try {
         await sql`ALTER TABLE todos ADD COLUMN IF NOT EXISTS user_id BIGINT`;
@@ -105,13 +116,38 @@ function signToken(user) {
   return jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: "7d" });
 }
 
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Authentication required" });
   }
+
+  const token = header.slice(7);
+
+  // Check if it's an API token (tf_ prefix)
+  if (token.startsWith("tf_")) {
+    try {
+      const sql = getSQL();
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+      const rows = await sql`
+        SELECT at.user_id, u.id, u.email, u.name
+        FROM api_tokens at JOIN users u ON at.user_id = u.id
+        WHERE at.token_hash = ${tokenHash}
+      `;
+      if (rows.length === 0) return res.status(401).json({ error: "Invalid API token" });
+      req.user = { id: Number(rows[0].id), email: rows[0].email, name: rows[0].name };
+      req.apiToken = true;
+      // Update last_used_at in the background
+      sql`UPDATE api_tokens SET last_used_at = NOW() WHERE token_hash = ${tokenHash}`.catch(() => {});
+      return next();
+    } catch {
+      return res.status(401).json({ error: "Invalid API token" });
+    }
+  }
+
+  // Otherwise treat as JWT
   try {
-    const payload = jwt.verify(header.slice(7), JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET);
     req.user = payload;
     next();
   } catch {
@@ -164,6 +200,56 @@ app.get("/api/auth/me", requireAuth, async (req, res) => {
   if (rows.length === 0) return res.status(401).json({ error: "User not found" });
   const u = rows[0];
   res.json({ id: Number(u.id), name: u.name, email: u.email });
+});
+
+// ── API Token management ──
+
+app.post("/api/tokens", requireAuth, async (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: "Token name is required" });
+
+  const sql = getSQL();
+  const id = crypto.randomBytes(8).toString("hex");
+  const rawToken = "tf_" + crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const tokenPrefix = rawToken.slice(0, 10);
+
+  await sql`
+    INSERT INTO api_tokens (id, user_id, name, token_hash, token_prefix)
+    VALUES (${id}, ${req.user.id}, ${name.trim()}, ${tokenHash}, ${tokenPrefix})
+  `;
+
+  res.status(201).json({
+    id,
+    name: name.trim(),
+    token: rawToken,
+    tokenPrefix,
+    createdAt: new Date().toISOString(),
+    lastUsedAt: null
+  });
+});
+
+app.get("/api/tokens", requireAuth, async (req, res) => {
+  const sql = getSQL();
+  const rows = await sql`
+    SELECT id, name, token_prefix, created_at, last_used_at
+    FROM api_tokens WHERE user_id = ${req.user.id} ORDER BY created_at DESC
+  `;
+  res.json(rows.map(r => ({
+    id: r.id,
+    name: r.name,
+    tokenPrefix: r.token_prefix,
+    createdAt: r.created_at,
+    lastUsedAt: r.last_used_at
+  })));
+});
+
+app.delete("/api/tokens/:id", requireAuth, async (req, res) => {
+  const sql = getSQL();
+  const rows = await sql`SELECT id FROM api_tokens WHERE id = ${req.params.id} AND user_id = ${req.user.id}`;
+  if (rows.length === 0) return res.status(404).json({ error: "Token not found" });
+  await sql`DELETE FROM api_tokens WHERE id = ${req.params.id} AND user_id = ${req.user.id}`;
+  res.status(204).end();
 });
 
 // ── Protected routes ──
