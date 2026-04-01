@@ -87,6 +87,19 @@ app.use(async (req, res, next) => {
           size INTEGER NOT NULL
         )
       `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS todo_shares (
+          id TEXT PRIMARY KEY,
+          todo_id BIGINT NOT NULL,
+          owner_id BIGINT NOT NULL,
+          shared_with_email TEXT NOT NULL,
+          shared_with_id BIGINT,
+          role TEXT NOT NULL DEFAULT 'viewer',
+          status TEXT NOT NULL DEFAULT 'pending',
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          expires_at TIMESTAMPTZ
+        )
+      `;
       // Migrate existing tables: add user_id if missing
       try {
         await sql`ALTER TABLE todos ADD COLUMN IF NOT EXISTS user_id BIGINT`;
@@ -171,28 +184,85 @@ app.get("/api/auth/me", requireAuth, async (req, res) => {
 // GET /api/todos
 app.get("/api/todos", requireAuth, async (req, res) => {
   const sql = getSQL();
-  const todos = await sql`SELECT * FROM todos WHERE user_id = ${req.user.id} ORDER BY created_at`;
-  const todoIds = todos.map(t => Number(t.id));
+  // Own todos
+  const ownTodos = await sql`SELECT * FROM todos WHERE user_id = ${req.user.id} ORDER BY created_at`;
+
+  // Shared todos: find accepted shares where current user is the collaborator
+  const acceptedShares = await sql`
+    SELECT s.todo_id, s.role, s.owner_id, u.name as owner_name
+    FROM todo_shares s
+    JOIN users u ON s.owner_id = u.id
+    WHERE s.shared_with_id = ${req.user.id} AND s.status = 'accepted'
+  `;
+
+  // Fetch the shared root todos and all their descendants
+  let sharedTodos = [];
+  const shareInfoMap = {};
+  for (const share of acceptedShares) {
+    const rootTodoId = Number(share.todo_id);
+    // Get root todo + all descendants using recursive CTE
+    const treeTodos = await sql`
+      WITH RECURSIVE tree AS (
+        SELECT * FROM todos WHERE id = ${rootTodoId}
+        UNION ALL
+        SELECT t.* FROM todos t INNER JOIN tree tr ON t.parent_id = tr.id
+      )
+      SELECT * FROM tree ORDER BY created_at
+    `;
+    for (const t of treeTodos) {
+      shareInfoMap[Number(t.id)] = {
+        role: share.role,
+        ownerName: share.owner_name,
+        ownerId: Number(share.owner_id),
+        sharedRootId: rootTodoId,
+      };
+    }
+    sharedTodos.push(...treeTodos);
+  }
+
+  // Remove duplicates (in case a todo is shared multiple times)
+  const ownIds = new Set(ownTodos.map(t => Number(t.id)));
+  sharedTodos = sharedTodos.filter(t => !ownIds.has(Number(t.id)));
+  const seenSharedIds = new Set();
+  sharedTodos = sharedTodos.filter(t => {
+    const id = Number(t.id);
+    if (seenSharedIds.has(id)) return false;
+    seenSharedIds.add(id);
+    return true;
+  });
+
+  const allTodos = [...ownTodos, ...sharedTodos];
+  const todoIds = allTodos.map(t => Number(t.id));
   const attachments = todoIds.length > 0
     ? await sql`SELECT * FROM attachments WHERE todo_id = ANY(${todoIds})`
     : [];
 
-  res.json(todos.map(t => ({
-    id: Number(t.id),
-    parentId: t.parent_id ? Number(t.parent_id) : null,
-    title: t.title,
-    description: t.description || "",
-    status: t.status,
-    dueDate: t.due_date || null,
-    attachments: attachments
-      .filter(a => Number(a.todo_id) === Number(t.id))
-      .map(a => ({
-        id: a.id,
-        url: a.blob_url,
-        originalName: a.original_name,
-        size: Number(a.size)
-      }))
-  })));
+  res.json(allTodos.map(t => {
+    const tid = Number(t.id);
+    const shareInfo = shareInfoMap[tid] || null;
+    return {
+      id: tid,
+      parentId: t.parent_id ? Number(t.parent_id) : null,
+      title: t.title,
+      description: t.description || "",
+      status: t.status,
+      dueDate: t.due_date || null,
+      attachments: attachments
+        .filter(a => Number(a.todo_id) === tid)
+        .map(a => ({
+          id: a.id,
+          url: a.blob_url,
+          originalName: a.original_name,
+          size: Number(a.size)
+        })),
+      shared: shareInfo ? {
+        role: shareInfo.role,
+        ownerName: shareInfo.ownerName,
+        ownerId: shareInfo.ownerId,
+        sharedRootId: shareInfo.sharedRootId,
+      } : null
+    };
+  }));
 });
 
 // POST /api/todos
@@ -205,14 +275,35 @@ app.post("/api/todos", requireAuth, async (req, res) => {
   const validStatus = ["pending", "in-progress", "done"].includes(status) ? status : "pending";
   const pId = parentId != null ? Number(parentId) : null;
 
+  let todoOwnerId = req.user.id;
   if (pId != null) {
-    const rows = await sql`SELECT id FROM todos WHERE id = ${pId} AND user_id = ${req.user.id}`;
-    if (rows.length === 0) return res.status(400).json({ error: "Parent not found" });
+    const rows = await sql`SELECT id, user_id FROM todos WHERE id = ${pId} AND user_id = ${req.user.id}`;
+    if (rows.length === 0) {
+      // Check if user has editor share access to the parent's root todo
+      const parentRows = await sql`SELECT * FROM todos WHERE id = ${pId}`;
+      if (parentRows.length === 0) return res.status(400).json({ error: "Parent not found" });
+
+      let rootId = Number(parentRows[0].id);
+      let currentParent = parentRows[0].parent_id;
+      while (currentParent) {
+        const pr = await sql`SELECT * FROM todos WHERE id = ${currentParent}`;
+        if (pr.length === 0) break;
+        rootId = Number(pr[0].id);
+        currentParent = pr[0].parent_id;
+      }
+
+      const shareRows = await sql`
+        SELECT role FROM todo_shares
+        WHERE todo_id = ${rootId} AND shared_with_id = ${req.user.id} AND status = 'accepted'
+      `;
+      if (shareRows.length === 0 || shareRows[0].role !== "editor") return res.status(400).json({ error: "Parent not found" });
+      todoOwnerId = Number(parentRows[0].user_id);
+    }
   }
 
   await sql`
     INSERT INTO todos (id, user_id, parent_id, title, description, status, due_date)
-    VALUES (${id}, ${req.user.id}, ${pId}, ${title.trim()}, ${(description || "").trim()}, ${validStatus}, ${dueDate || null})
+    VALUES (${id}, ${todoOwnerId}, ${pId}, ${title.trim()}, ${(description || "").trim()}, ${validStatus}, ${dueDate || null})
   `;
 
   const todo = {
@@ -234,8 +325,30 @@ app.post("/api/todos", requireAuth, async (req, res) => {
 app.put("/api/todos/:id", requireAuth, async (req, res) => {
   const sql = getSQL();
   const id = Number(req.params.id);
-  const rows = await sql`SELECT * FROM todos WHERE id = ${id} AND user_id = ${req.user.id}`;
-  if (rows.length === 0) return res.status(404).json({ error: "Not found" });
+  let rows = await sql`SELECT * FROM todos WHERE id = ${id} AND user_id = ${req.user.id}`;
+
+  // If not owned, check if user has editor access via sharing
+  if (rows.length === 0) {
+    rows = await sql`SELECT * FROM todos WHERE id = ${id}`;
+    if (rows.length === 0) return res.status(404).json({ error: "Not found" });
+
+    // Find the root todo for this item
+    let rootId = Number(rows[0].id);
+    let currentParent = rows[0].parent_id;
+    while (currentParent) {
+      const parentRows = await sql`SELECT * FROM todos WHERE id = ${currentParent}`;
+      if (parentRows.length === 0) break;
+      rootId = Number(parentRows[0].id);
+      currentParent = parentRows[0].parent_id;
+    }
+
+    const shareRows = await sql`
+      SELECT role FROM todo_shares
+      WHERE todo_id = ${rootId} AND shared_with_id = ${req.user.id} AND status = 'accepted'
+    `;
+    if (shareRows.length === 0) return res.status(404).json({ error: "Not found" });
+    if (shareRows[0].role !== "editor") return res.status(403).json({ error: "Viewer access only" });
+  }
 
   const todo = rows[0];
   const title = req.body.title !== undefined ? req.body.title.trim() : todo.title;
@@ -245,7 +358,7 @@ app.put("/api/todos/:id", requireAuth, async (req, res) => {
 
   await sql`
     UPDATE todos SET title = ${title}, description = ${description}, status = ${status}, due_date = ${dueDate}
-    WHERE id = ${id} AND user_id = ${req.user.id}
+    WHERE id = ${id}
   `;
 
   const atts = await sql`SELECT * FROM attachments WHERE todo_id = ${id}`;
@@ -325,8 +438,17 @@ app.delete("/api/todos/:id", requireAuth, async (req, res) => {
 app.post("/api/todos/:id/attachments", requireAuth, upload.array("files", 10), async (req, res) => {
   const sql = getSQL();
   const todoId = Number(req.params.id);
-  const rows = await sql`SELECT id FROM todos WHERE id = ${todoId} AND user_id = ${req.user.id}`;
-  if (rows.length === 0) return res.status(404).json({ error: "Not found" });
+  let rows = await sql`SELECT id FROM todos WHERE id = ${todoId} AND user_id = ${req.user.id}`;
+  if (rows.length === 0) {
+    // Check editor share access
+    const todoRows = await sql`SELECT * FROM todos WHERE id = ${todoId}`;
+    if (todoRows.length === 0) return res.status(404).json({ error: "Not found" });
+    let rootId = Number(todoRows[0].id);
+    let cp = todoRows[0].parent_id;
+    while (cp) { const pr = await sql`SELECT * FROM todos WHERE id = ${cp}`; if (pr.length === 0) break; rootId = Number(pr[0].id); cp = pr[0].parent_id; }
+    const sr = await sql`SELECT role FROM todo_shares WHERE todo_id = ${rootId} AND shared_with_id = ${req.user.id} AND status = 'accepted'`;
+    if (sr.length === 0 || sr[0].role !== "editor") return res.status(404).json({ error: "Not found" });
+  }
 
   const added = [];
   for (const file of req.files) {
@@ -347,15 +469,183 @@ app.post("/api/todos/:id/attachments", requireAuth, upload.array("files", 10), a
 // DELETE /api/todos/:id/attachments/:attId
 app.delete("/api/todos/:id/attachments/:attId", requireAuth, async (req, res) => {
   const sql = getSQL();
-  // Verify the todo belongs to the user
-  const todoRows = await sql`SELECT id FROM todos WHERE id = ${Number(req.params.id)} AND user_id = ${req.user.id}`;
-  if (todoRows.length === 0) return res.status(404).json({ error: "Not found" });
+  const todoIdNum = Number(req.params.id);
+  // Verify the todo belongs to the user or user has editor share access
+  let todoRows = await sql`SELECT id FROM todos WHERE id = ${todoIdNum} AND user_id = ${req.user.id}`;
+  if (todoRows.length === 0) {
+    const tRows = await sql`SELECT * FROM todos WHERE id = ${todoIdNum}`;
+    if (tRows.length === 0) return res.status(404).json({ error: "Not found" });
+    let rootId = Number(tRows[0].id);
+    let cp = tRows[0].parent_id;
+    while (cp) { const pr = await sql`SELECT * FROM todos WHERE id = ${cp}`; if (pr.length === 0) break; rootId = Number(pr[0].id); cp = pr[0].parent_id; }
+    const sr = await sql`SELECT role FROM todo_shares WHERE todo_id = ${rootId} AND shared_with_id = ${req.user.id} AND status = 'accepted'`;
+    if (sr.length === 0 || sr[0].role !== "editor") return res.status(404).json({ error: "Not found" });
+  }
 
   const rows = await sql`SELECT * FROM attachments WHERE id = ${req.params.attId} AND todo_id = ${Number(req.params.id)}`;
   if (rows.length === 0) return res.status(404).json({ error: "Attachment not found" });
 
   try { await del(rows[0].blob_url); } catch (e) { /* ignore */ }
   await sql`DELETE FROM attachments WHERE id = ${req.params.attId}`;
+  res.status(204).end();
+});
+
+// ── Sharing endpoints ──
+
+// POST /api/todos/:id/shares – owner invites a user by email
+app.post("/api/todos/:id/shares", requireAuth, async (req, res) => {
+  const sql = getSQL();
+  const todoId = Number(req.params.id);
+  const { email, role } = req.body;
+
+  if (!email || !email.trim()) return res.status(400).json({ error: "Email is required" });
+  if (!["viewer", "editor"].includes(role)) return res.status(400).json({ error: "Role must be viewer or editor" });
+
+  const normalizedEmail = email.trim().toLowerCase();
+  if (normalizedEmail === req.user.email) return res.status(400).json({ error: "Cannot share with yourself" });
+
+  // Verify todo exists and user owns it
+  const todoRows = await sql`SELECT * FROM todos WHERE id = ${todoId} AND user_id = ${req.user.id}`;
+  if (todoRows.length === 0) return res.status(404).json({ error: "Not found" });
+
+  // Must be a root todo (no parent)
+  if (todoRows[0].parent_id) return res.status(400).json({ error: "Can only share root-level todos" });
+
+  // Check for existing active share with same email on same todo
+  const existingShares = await sql`
+    SELECT id FROM todo_shares
+    WHERE todo_id = ${todoId} AND shared_with_email = ${normalizedEmail} AND status IN ('pending', 'accepted')
+  `;
+  if (existingShares.length > 0) return res.status(409).json({ error: "Already shared with this user" });
+
+  const shareId = crypto.randomBytes(8).toString("hex");
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+  // Check if the invited user already exists
+  const userRows = await sql`SELECT id FROM users WHERE email = ${normalizedEmail}`;
+  const sharedWithId = userRows.length > 0 ? Number(userRows[0].id) : null;
+
+  await sql`
+    INSERT INTO todo_shares (id, todo_id, owner_id, shared_with_email, shared_with_id, role, status, expires_at)
+    VALUES (${shareId}, ${todoId}, ${req.user.id}, ${normalizedEmail}, ${sharedWithId}, ${role}, 'pending', ${expiresAt})
+  `;
+
+  // Send invite email
+  try {
+    await mailTransporter.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: normalizedEmail,
+      subject: `${req.user.name} shared a todo with you: ${todoRows[0].title}`,
+      text: [
+        `${req.user.name} has invited you to collaborate on a todo.`,
+        ``,
+        `Todo: ${todoRows[0].title}`,
+        `Role: ${role}`,
+        ``,
+        `Log in to Taskflow to accept this invite. It expires in 10 minutes.`,
+      ].join("\n"),
+    });
+  } catch (err) {
+    console.error("Failed to send share invite email:", err.message);
+  }
+
+  res.status(201).json({ id: shareId, todoId, email: normalizedEmail, role, status: "pending", expiresAt });
+});
+
+// GET /api/todos/:id/shares – owner lists shares for a todo
+app.get("/api/todos/:id/shares", requireAuth, async (req, res) => {
+  const sql = getSQL();
+  const todoId = Number(req.params.id);
+
+  const todoRows = await sql`SELECT id FROM todos WHERE id = ${todoId} AND user_id = ${req.user.id}`;
+  if (todoRows.length === 0) return res.status(404).json({ error: "Not found" });
+
+  const shares = await sql`SELECT * FROM todo_shares WHERE todo_id = ${todoId} AND status IN ('pending', 'accepted') ORDER BY created_at`;
+
+  res.json(shares.map(s => ({
+    id: s.id,
+    todoId: Number(s.todo_id),
+    email: s.shared_with_email,
+    role: s.role,
+    status: s.status,
+    expiresAt: s.expires_at,
+    createdAt: s.created_at,
+  })));
+});
+
+// DELETE /api/todos/:id/shares/:shareId – owner revokes a share
+app.delete("/api/todos/:id/shares/:shareId", requireAuth, async (req, res) => {
+  const sql = getSQL();
+  const todoId = Number(req.params.id);
+  const shareId = req.params.shareId;
+
+  const todoRows = await sql`SELECT id FROM todos WHERE id = ${todoId} AND user_id = ${req.user.id}`;
+  if (todoRows.length === 0) return res.status(404).json({ error: "Not found" });
+
+  const shareRows = await sql`SELECT * FROM todo_shares WHERE id = ${shareId} AND todo_id = ${todoId}`;
+  if (shareRows.length === 0) return res.status(404).json({ error: "Share not found" });
+
+  await sql`UPDATE todo_shares SET status = 'revoked' WHERE id = ${shareId}`;
+  res.status(204).end();
+});
+
+// GET /api/shares/pending – get pending invites for current user
+app.get("/api/shares/pending", requireAuth, async (req, res) => {
+  const sql = getSQL();
+  const now = new Date().toISOString();
+
+  const shares = await sql`
+    SELECT s.*, t.title as todo_title, u.name as owner_name
+    FROM todo_shares s
+    JOIN todos t ON s.todo_id = t.id
+    JOIN users u ON s.owner_id = u.id
+    WHERE s.shared_with_email = ${req.user.email}
+      AND s.status = 'pending'
+      AND s.expires_at > ${now}
+    ORDER BY s.created_at DESC
+  `;
+
+  res.json(shares.map(s => ({
+    id: s.id,
+    todoId: Number(s.todo_id),
+    todoTitle: s.todo_title,
+    ownerName: s.owner_name,
+    role: s.role,
+    expiresAt: s.expires_at,
+  })));
+});
+
+// POST /api/shares/:shareId/accept – accept a pending invite
+app.post("/api/shares/:shareId/accept", requireAuth, async (req, res) => {
+  const sql = getSQL();
+  const shareId = req.params.shareId;
+
+  const rows = await sql`
+    SELECT * FROM todo_shares WHERE id = ${shareId} AND shared_with_email = ${req.user.email} AND status = 'pending'
+  `;
+  if (rows.length === 0) return res.status(404).json({ error: "Invite not found" });
+
+  const share = rows[0];
+  if (new Date(share.expires_at) < new Date()) {
+    await sql`UPDATE todo_shares SET status = 'expired' WHERE id = ${shareId}`;
+    return res.status(410).json({ error: "Invite has expired" });
+  }
+
+  await sql`UPDATE todo_shares SET status = 'accepted', shared_with_id = ${req.user.id} WHERE id = ${shareId}`;
+  res.json({ message: "Invite accepted" });
+});
+
+// POST /api/shares/:shareId/decline – decline a pending invite
+app.post("/api/shares/:shareId/decline", requireAuth, async (req, res) => {
+  const sql = getSQL();
+  const shareId = req.params.shareId;
+
+  const rows = await sql`
+    SELECT * FROM todo_shares WHERE id = ${shareId} AND shared_with_email = ${req.user.email} AND status = 'pending'
+  `;
+  if (rows.length === 0) return res.status(404).json({ error: "Invite not found" });
+
+  await sql`UPDATE todo_shares SET status = 'declined' WHERE id = ${shareId}`;
   res.status(204).end();
 });
 
