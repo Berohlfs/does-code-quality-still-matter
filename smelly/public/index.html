@@ -1538,6 +1538,167 @@
     }
 
     .avatar-dropdown-logout:hover { background: var(--danger-bg); }
+
+    /* ── Sharing UI ── */
+    .share-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      background: var(--accent-soft);
+      color: var(--accent-text);
+    }
+
+    .share-owner {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+
+    .share-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: inherit;
+      transition: background var(--transition);
+    }
+    .share-btn:hover { background: var(--accent-soft); }
+
+    .share-modal { max-width: 480px; }
+    .share-modal h2 { margin-bottom: 16px; }
+
+    .share-invite-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .share-invite-row input[type="email"] {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--text-primary);
+    }
+    .share-invite-row select {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--text-primary);
+    }
+    .share-invite-row button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background var(--transition);
+    }
+    .share-invite-row button:hover { background: var(--accent-hover); }
+
+    .share-list { list-style: none; margin: 0; padding: 0; }
+    .share-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .share-list-item:last-child { border-bottom: none; }
+    .share-list-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .share-list-email { font-weight: 600; color: var(--text-primary); }
+    .share-list-meta { font-size: 0.75rem; color: var(--text-tertiary); }
+    .share-revoke-btn {
+      background: none;
+      border: none;
+      color: var(--danger);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: inherit;
+      transition: background var(--transition);
+    }
+    .share-revoke-btn:hover { background: var(--danger-bg); }
+
+    .invites-banner {
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+    }
+    .invites-banner-title {
+      font-weight: 700;
+      font-size: 0.875rem;
+      color: var(--accent-text);
+      margin-bottom: 8px;
+    }
+    .invite-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+      font-size: 0.8125rem;
+    }
+    .invite-item:last-child { border-bottom: none; }
+    .invite-info { color: var(--text-primary); }
+    .invite-info strong { font-weight: 600; }
+    .invite-actions { display: flex; gap: 6px; }
+    .invite-accept-btn {
+      padding: 4px 12px;
+      border: none;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .invite-decline-btn {
+      padding: 4px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .share-label-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
   </style>
 </head>
 <body>
@@ -1744,6 +1905,40 @@
       </div>
     </div>
   </div>
+
+  <!-- Share modal -->
+  <div class="modal-overlay" id="shareModalOverlay">
+    <div class="modal share-modal">
+      <h2>Share Task</h2>
+      <p id="shareTodoTitle" style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:16px"></p>
+      <input type="hidden" id="shareTodoId">
+      <div class="share-invite-row">
+        <input type="email" id="shareEmail" placeholder="Email address" autocomplete="off">
+        <select id="shareRole">
+          <option value="viewer">Viewer</option>
+          <option value="editor">Editor</option>
+        </select>
+        <button id="sendInviteBtn">Invite</button>
+      </div>
+      <div id="shareError" class="auth-error" style="display:none;margin-bottom:12px"></div>
+      <div id="shareListSection">
+        <div style="font-weight:600;font-size:0.8125rem;margin-bottom:8px;color:var(--text-secondary)">Collaborators</div>
+        <ul class="share-list" id="shareList"></ul>
+        <div id="shareListEmpty" style="font-size:0.8125rem;color:var(--text-tertiary);padding:8px 0">No collaborators yet</div>
+      </div>
+      <div class="modal-buttons" style="margin-top:16px">
+        <button type="button" class="btn-cancel" id="shareCloseBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending invites banner (inserted dynamically) -->
+  <template id="invitesBannerTpl">
+    <div class="invites-banner" id="invitesBanner">
+      <div class="invites-banner-title">Pending Invites</div>
+      <div id="invitesList"></div>
+    </div>
+  </template>
 
   <!-- Toast container -->
   <div class="toast-container" id="toastContainer"></div>
@@ -2002,8 +2197,11 @@
     async function fetchTodos() {
       if (isInitialLoad) showLoadingSkeleton();
       try {
-        const res = await authFetch("/api/todos");
-        todos = await res.json();
+        const [todosRes] = await Promise.all([
+          authFetch("/api/todos"),
+          fetchPendingInvites()
+        ]);
+        todos = await todosRes.json();
         if (isInitialLoad) { restoreStatsBar(); isInitialLoad = false; }
         render();
       } catch (err) {
@@ -2094,23 +2292,65 @@
       return `<div class="todo-attachments">${chips}</div>`;
     }
 
+    function renderAttachmentChipsReadonly(attachments) {
+      if (!attachments || attachments.length === 0) return "";
+      const chips = attachments.map(a => `
+        <span class="att-chip">
+          <a href="${a.url}" target="_blank" title="${escapeHtml(a.originalName)} (${formatSize(a.size)})">${escapeHtml(a.originalName)}</a>
+        </span>
+      `).join("");
+      return `<div class="todo-attachments">${chips}</div>`;
+    }
+
     // ── Render ──
     function render() {
       updateStats();
+      renderInvitesBanner();
       if (viewMode === "list") renderList();
       else renderKanban();
     }
 
+    function isRootTodo(t) {
+      return !t.parentId || t.parentId === null;
+    }
+
+    function canEditTodo(t) {
+      if (!t.isShared) return true;
+      return t.shareRole === "editor";
+    }
+
     function todoBodyHtml(t, showStatus) {
       const calendarSvg = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="2"/><line x1="2" y1="7" x2="14" y2="7"/><line x1="5" y1="1" x2="5" y2="4"/><line x1="11" y1="1" x2="11" y2="4"/></svg>';
+      const editable = canEditTodo(t);
+      const isOwnRoot = !t.isShared && isRootTodo(t);
+
+      let shareLabel = "";
+      if (t.isShared && isRootTodo(t)) {
+        shareLabel = `<div class="share-label-row">
+          <span class="share-badge">Shared</span>
+          <span class="share-owner">by ${escapeHtml(t.ownerName)}</span>
+        </div>`;
+      }
+
+      let actions = "";
+      if (editable) {
+        actions = `
+          <button class="add-subtask-btn" data-parent-id="${t.id}" title="Add subtask">+ sub</button>
+          <button class="edit-btn" title="Edit">&#9998;</button>
+          ${!t.isShared ? `<button class="delete-btn" title="Delete">&#10005;</button>` : ""}
+        `;
+      }
+      if (isOwnRoot) {
+        actions += `<button class="share-btn" data-share-id="${t.id}" title="Share">Share</button>`;
+      }
+
       return `
         <div class="todo-body">
+          ${shareLabel}
           <div class="todo-header">
             <span class="todo-title">${escapeHtml(t.title)}</span>
             <span class="todo-actions">
-              <button class="add-subtask-btn" data-parent-id="${t.id}" title="Add subtask">+ sub</button>
-              <button class="edit-btn" title="Edit">&#9998;</button>
-              <button class="delete-btn" title="Delete">&#10005;</button>
+              ${actions}
             </span>
           </div>
           ${t.description ? `<div class="todo-description">${escapeHtml(t.description)}</div>` : ""}
@@ -2118,7 +2358,7 @@
             ${showStatus ? `<span class="status-badge ${t.status}">${statusLabel(t.status)}</span>` : ""}
             ${t.dueDate ? `<span class="due-date ${isOverdue(t) ? "overdue" : ""}">${calendarSvg} ${formatDate(t.dueDate)}</span>` : ""}
           </div>
-          ${renderAttachmentChips(t.attachments, t.id)}
+          ${editable ? renderAttachmentChips(t.attachments, t.id) : renderAttachmentChipsReadonly(t.attachments)}
         </div>
       `;
     }
@@ -2204,14 +2444,21 @@
       let html = `<div class="kanban-subtasks">`;
       if (isTop) html += `<div class="kanban-subtask-header">Subtasks (${children.length})</div>`;
       for (const c of children) {
+        const editable = canEditTodo(c);
+        let subtaskActions = "";
+        if (editable) {
+          subtaskActions = `
+            <button class="add-subtask-btn" data-parent-id="${c.id}" title="Add subtask" style="font-size:0.72rem;padding:2px 4px">+ sub</button>
+            <button class="edit-btn" title="Edit" style="font-size:0.8rem;padding:2px 4px">&#9998;</button>
+            ${!c.isShared ? `<button class="delete-btn" title="Delete" style="font-size:0.8rem;padding:2px 4px">&#10005;</button>` : ""}
+          `;
+        }
         html += `
           <div class="kanban-subtask-item ${c.status}" data-id="${c.id}">
             <span class="subtask-dot ${c.status}"></span>
             <span class="subtask-text">${escapeHtml(c.title)}</span>
             <span class="todo-actions" style="opacity:1">
-              <button class="add-subtask-btn" data-parent-id="${c.id}" title="Add subtask" style="font-size:0.72rem;padding:2px 4px">+ sub</button>
-              <button class="edit-btn" title="Edit" style="font-size:0.8rem;padding:2px 4px">&#9998;</button>
-              <button class="delete-btn" title="Delete" style="font-size:0.8rem;padding:2px 4px">&#10005;</button>
+              ${subtaskActions}
             </span>
           </div>
           ${renderKanbanSubtasks(c.id, depth + 1)}
@@ -2234,7 +2481,7 @@
           col.innerHTML = `<div class="kanban-empty">No items</div>`;
         } else {
           col.innerHTML = items.map(t => `
-            <div class="kanban-card status-${t.status}" data-id="${t.id}" draggable="true">
+            <div class="kanban-card status-${t.status}" data-id="${t.id}" draggable="${canEditTodo(t)}">
               ${todoBodyHtml(t, false)}
               ${renderKanbanSubtasks(t.id, 0)}
             </div>
@@ -2306,6 +2553,11 @@
       e.preventDefault();
       zone.classList.remove("drag-over");
       const id = e.dataTransfer.getData("text/plain");
+      const todo = todos.find(t => t.id === Number(id));
+      if (todo && !canEditTodo(todo)) {
+        showToast("You don't have permission to edit this task", "error");
+        return;
+      }
       const newStatus = zone.dataset.status;
       try {
         await authFetch(`/api/todos/${id}`, {
@@ -2597,10 +2849,193 @@
     handleCardActions(todoList);
     handleCardActions(kanbanBoard);
 
+    // ── Share modal logic ──
+    const shareModalOverlay = document.getElementById("shareModalOverlay");
+    const shareTodoId = document.getElementById("shareTodoId");
+    const shareTodoTitle = document.getElementById("shareTodoTitle");
+    const shareEmail = document.getElementById("shareEmail");
+    const shareRole = document.getElementById("shareRole");
+    const shareError = document.getElementById("shareError");
+    const shareList = document.getElementById("shareList");
+    const shareListEmpty = document.getElementById("shareListEmpty");
+
+    function handleShareClick(root) {
+      root.addEventListener("click", e => {
+        const shareBtn = e.target.closest(".share-btn");
+        if (!shareBtn) return;
+        const id = Number(shareBtn.dataset.shareId);
+        const todo = todos.find(t => t.id === id);
+        if (!todo) return;
+        openShareModal(todo);
+      });
+    }
+    handleShareClick(todoList);
+    handleShareClick(kanbanBoard);
+
+    async function openShareModal(todo) {
+      shareTodoId.value = todo.id;
+      shareTodoTitle.textContent = `Sharing: ${todo.title}`;
+      shareEmail.value = "";
+      shareRole.value = "viewer";
+      shareError.style.display = "none";
+      shareModalOverlay.classList.add("open");
+      await loadShares(todo.id);
+      shareEmail.focus();
+    }
+
+    function closeShareModal() {
+      shareModalOverlay.classList.remove("open");
+    }
+
+    document.getElementById("shareCloseBtn").addEventListener("click", closeShareModal);
+    shareModalOverlay.addEventListener("click", e => {
+      if (e.target === shareModalOverlay) closeShareModal();
+    });
+
+    async function loadShares(todoId) {
+      try {
+        const res = await authFetch(`/api/todos/${todoId}/shares`);
+        const shares = await res.json();
+        if (shares.length === 0) {
+          shareList.innerHTML = "";
+          shareListEmpty.style.display = "";
+        } else {
+          shareListEmpty.style.display = "none";
+          shareList.innerHTML = shares.map(s => {
+            const statusText = s.status === "pending" ? " (pending)" : "";
+            return `
+              <li class="share-list-item">
+                <div class="share-list-info">
+                  <span class="share-list-email">${escapeHtml(s.email)}</span>
+                  <span class="share-list-meta">${s.role}${statusText}</span>
+                </div>
+                <button class="share-revoke-btn" data-revoke-id="${s.id}">Revoke</button>
+              </li>
+            `;
+          }).join("");
+        }
+      } catch {
+        shareList.innerHTML = "";
+        shareListEmpty.style.display = "";
+      }
+    }
+
+    // Revoke share
+    shareList.addEventListener("click", async e => {
+      const btn = e.target.closest(".share-revoke-btn");
+      if (!btn) return;
+      const shareId = btn.dataset.revokeId;
+      try {
+        await authFetch(`/api/shares/${shareId}`, { method: "DELETE" });
+        showToast("Share revoked", "success");
+        await loadShares(shareTodoId.value);
+      } catch {
+        showToast("Failed to revoke share", "error");
+      }
+    });
+
+    // Send invite
+    document.getElementById("sendInviteBtn").addEventListener("click", async () => {
+      const email = shareEmail.value.trim();
+      const role = shareRole.value;
+      const todoId = shareTodoId.value;
+      shareError.style.display = "none";
+
+      if (!email) {
+        shareError.textContent = "Email is required";
+        shareError.style.display = "";
+        return;
+      }
+
+      try {
+        const res = await authFetch(`/api/todos/${todoId}/shares`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, role })
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Failed to send invite");
+        }
+        shareEmail.value = "";
+        showToast("Invite sent", "success");
+        await loadShares(todoId);
+      } catch (err) {
+        shareError.textContent = err.message;
+        shareError.style.display = "";
+      }
+    });
+
+    // ── Pending invites ──
+    let pendingInvites = [];
+
+    async function fetchPendingInvites() {
+      try {
+        const res = await authFetch("/api/pending-invites");
+        pendingInvites = await res.json();
+      } catch {
+        pendingInvites = [];
+      }
+    }
+
+    function renderInvitesBanner() {
+      const existing = document.getElementById("invitesBanner");
+      if (existing) existing.remove();
+
+      if (pendingInvites.length === 0) return;
+
+      const banner = document.createElement("div");
+      banner.className = "invites-banner";
+      banner.id = "invitesBanner";
+      banner.innerHTML = `
+        <div class="invites-banner-title">Pending Invites (${pendingInvites.length})</div>
+        ${pendingInvites.map(inv => `
+          <div class="invite-item" data-invite-id="${inv.id}">
+            <div class="invite-info">
+              <strong>${escapeHtml(inv.ownerName)}</strong> shared
+              <strong>${escapeHtml(inv.todoTitle)}</strong> as ${inv.role}
+            </div>
+            <div class="invite-actions">
+              <button class="invite-accept-btn" data-invite-id="${inv.id}">Accept</button>
+              <button class="invite-decline-btn" data-invite-id="${inv.id}">Decline</button>
+            </div>
+          </div>
+        `).join("")}
+      `;
+
+      // Insert before the toolbar
+      const statsBar = document.getElementById("statsBar");
+      if (statsBar) statsBar.parentNode.insertBefore(banner, statsBar.nextSibling);
+
+      // Handle accept/decline clicks
+      banner.addEventListener("click", async e => {
+        const acceptBtn = e.target.closest(".invite-accept-btn");
+        const declineBtn = e.target.closest(".invite-decline-btn");
+        if (!acceptBtn && !declineBtn) return;
+
+        const inviteId = (acceptBtn || declineBtn).dataset.inviteId;
+        const action = acceptBtn ? "accept" : "decline";
+
+        try {
+          const res = await authFetch(`/api/shares/${inviteId}/${action}`, { method: "POST" });
+          if (!res.ok && res.status !== 204) {
+            const data = await res.json();
+            throw new Error(data.error || `Failed to ${action}`);
+          }
+          showToast(action === "accept" ? "Invite accepted" : "Invite declined", "success");
+          await fetchPendingInvites();
+          await fetchTodos();
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      });
+    }
+
     // Keyboard shortcut: Escape closes modals
     document.addEventListener("keydown", e => {
       if (e.key === "Escape") {
-        if (deleteDialogOverlay.classList.contains("open")) closeDeleteDialog();
+        if (shareModalOverlay.classList.contains("open")) closeShareModal();
+        else if (deleteDialogOverlay.classList.contains("open")) closeDeleteDialog();
         else if (modalOverlay.classList.contains("open")) closeModal();
       }
     });
