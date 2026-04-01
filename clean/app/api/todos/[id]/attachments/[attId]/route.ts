@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import { del } from "@vercel/blob";
 import { db } from "@/db/client";
-import { todos, attachments } from "@/db/schemas";
-import { getRequestUser } from "@/app/api/_helpers/request";
+import { attachments } from "@/db/schemas";
+import {
+  getRequestUser,
+  validationError,
+  findUserTodo,
+  notFound,
+} from "@/app/api/_helpers/request";
 import { attachmentParamsDto } from "@/dto/todo";
 
 type Params = Promise<{ id: string; attId: string }>;
@@ -17,24 +22,14 @@ export async function DELETE(
 
   const paramsResult = attachmentParamsDto.safeParse(rawParams);
   if (!paramsResult.success) {
-    return NextResponse.json(
-      { error: paramsResult.error.issues[0].message },
-      { status: 400 }
-    );
+    return validationError(paramsResult.error);
   }
 
   const todoId = Number(paramsResult.data.id);
   const { attId } = paramsResult.data;
 
-  const todoRows = await db
-    .select({ id: todos.id })
-    .from(todos)
-    .where(and(eq(todos.id, todoId), eq(todos.userId, user.id)))
-    .limit(1);
-
-  if (todoRows.length === 0) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  const todo = await findUserTodo(todoId, user.id);
+  if (!todo) return notFound();
 
   const attRows = await db
     .select()
@@ -43,10 +38,7 @@ export async function DELETE(
     .limit(1);
 
   if (attRows.length === 0) {
-    return NextResponse.json(
-      { error: "Attachment not found" },
-      { status: 404 }
-    );
+    return notFound("Attachment not found");
   }
 
   try {

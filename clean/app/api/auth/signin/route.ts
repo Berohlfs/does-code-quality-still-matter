@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { users } from "@/db/schemas";
 import { signToken, setAuthCookie } from "@/app/api/auth/_helpers/jwt";
+import { validationError } from "@/app/api/_helpers/request";
 import { signInDto, type AuthResponseDto } from "@/dto/user";
 
 export async function POST(request: Request) {
@@ -11,10 +12,7 @@ export async function POST(request: Request) {
   const result = signInDto.safeParse(body);
 
   if (!result.success) {
-    return NextResponse.json(
-      { error: result.error.issues[0].message },
-      { status: 400 }
-    );
+    return validationError(result.error);
   }
 
   const { email, password } = result.data;

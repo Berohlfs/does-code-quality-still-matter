@@ -3,15 +3,31 @@ import { eq, and, sql } from "drizzle-orm";
 import { del } from "@vercel/blob";
 import { db } from "@/db/client";
 import { todos, attachments } from "@/db/schemas";
-import { getRequestUser } from "@/app/api/_helpers/request";
+import {
+  getRequestUser,
+  validationError,
+  findUserTodo,
+  notFound,
+} from "@/app/api/_helpers/request";
 import {
   todoParamsDto,
   updateTodoBodyDto,
   deleteTodoQueryDto,
   type TodoDto,
 } from "@/dto/todo";
+import { toAttachmentDto } from "@/dto/attachment";
 
 type Params = Promise<{ id: string }>;
+
+async function deleteBlobs(urls: string[]) {
+  for (const url of urls) {
+    try {
+      await del(url);
+    } catch {
+      // Blob deletion is best-effort
+    }
+  }
+}
 
 export async function PUT(request: Request, { params }: { params: Params }) {
   const user = await getRequestUser();
@@ -19,33 +35,19 @@ export async function PUT(request: Request, { params }: { params: Params }) {
 
   const paramsResult = todoParamsDto.safeParse(rawParams);
   if (!paramsResult.success) {
-    return NextResponse.json(
-      { error: paramsResult.error.issues[0].message },
-      { status: 400 }
-    );
+    return validationError(paramsResult.error);
   }
   const id = Number(paramsResult.data.id);
 
   const body = await request.json();
   const bodyResult = updateTodoBodyDto.safeParse(body);
   if (!bodyResult.success) {
-    return NextResponse.json(
-      { error: bodyResult.error.issues[0].message },
-      { status: 400 }
-    );
+    return validationError(bodyResult.error);
   }
 
-  const rows = await db
-    .select()
-    .from(todos)
-    .where(and(eq(todos.id, id), eq(todos.userId, user.id)))
-    .limit(1);
+  const existing = await findUserTodo(id, user.id);
+  if (!existing) return notFound();
 
-  if (rows.length === 0) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  const existing = rows[0];
   const updates = bodyResult.data;
 
   const title = updates.title ?? existing.title;
@@ -71,12 +73,7 @@ export async function PUT(request: Request, { params }: { params: Params }) {
     description,
     status: status as TodoDto["status"],
     dueDate,
-    attachments: atts.map((a) => ({
-      id: a.id,
-      url: a.blobUrl,
-      originalName: a.originalName,
-      size: a.size,
-    })),
+    attachments: atts.map(toAttachmentDto),
   };
 
   return NextResponse.json(response);
@@ -91,10 +88,7 @@ export async function DELETE(
 
   const paramsResult = todoParamsDto.safeParse(rawParams);
   if (!paramsResult.success) {
-    return NextResponse.json(
-      { error: paramsResult.error.issues[0].message },
-      { status: 400 }
-    );
+    return validationError(paramsResult.error);
   }
   const id = Number(paramsResult.data.id);
 
@@ -106,53 +100,30 @@ export async function DELETE(
     ? queryResult.data.cascade !== "false"
     : true;
 
-  const rows = await db
-    .select()
-    .from(todos)
-    .where(and(eq(todos.id, id), eq(todos.userId, user.id)))
-    .limit(1);
-
-  if (rows.length === 0) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  const todo = rows[0];
+  const todo = await findUserTodo(id, user.id);
+  if (!todo) return notFound();
 
   if (cascade) {
-    const descendantAtts = await db.execute<{ blob_url: string }>(sql`
+    const descendantsCte = sql`
       WITH RECURSIVE descendants AS (
         SELECT id FROM todos WHERE id = ${id} AND user_id = ${user.id}
         UNION ALL
         SELECT t.id FROM todos t INNER JOIN descendants d ON t.parent_id = d.id
       )
-      SELECT blob_url FROM attachments WHERE todo_id IN (SELECT id FROM descendants)
-    `);
+    `;
 
-    for (const a of descendantAtts) {
-      try {
-        await del(a.blob_url);
-      } catch {
-        // Blob deletion is best-effort
-      }
-    }
+    const descendantAtts = await db.execute<{ blob_url: string }>(
+      sql`${descendantsCte} SELECT blob_url FROM attachments WHERE todo_id IN (SELECT id FROM descendants)`
+    );
 
-    await db.execute(sql`
-      WITH RECURSIVE descendants AS (
-        SELECT id FROM todos WHERE id = ${id} AND user_id = ${user.id}
-        UNION ALL
-        SELECT t.id FROM todos t INNER JOIN descendants d ON t.parent_id = d.id
-      )
-      DELETE FROM attachments WHERE todo_id IN (SELECT id FROM descendants)
-    `);
+    await deleteBlobs(descendantAtts.map((a) => a.blob_url));
 
-    await db.execute(sql`
-      WITH RECURSIVE descendants AS (
-        SELECT id FROM todos WHERE id = ${id} AND user_id = ${user.id}
-        UNION ALL
-        SELECT t.id FROM todos t INNER JOIN descendants d ON t.parent_id = d.id
-      )
-      DELETE FROM todos WHERE id IN (SELECT id FROM descendants)
-    `);
+    await db.execute(
+      sql`${descendantsCte} DELETE FROM attachments WHERE todo_id IN (SELECT id FROM descendants)`
+    );
+    await db.execute(
+      sql`${descendantsCte} DELETE FROM todos WHERE id IN (SELECT id FROM descendants)`
+    );
   } else {
     await db
       .update(todos)
@@ -164,13 +135,7 @@ export async function DELETE(
       .from(attachments)
       .where(eq(attachments.todoId, id));
 
-    for (const a of atts) {
-      try {
-        await del(a.blobUrl);
-      } catch {
-        // Blob deletion is best-effort
-      }
-    }
+    await deleteBlobs(atts.map((a) => a.blobUrl));
 
     await db.delete(attachments).where(eq(attachments.todoId, id));
     await db

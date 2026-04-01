@@ -97,38 +97,26 @@ export function TodoDialog({
 
   async function onSubmit(data: CreateTodoBody) {
     try {
-      if (isEditing) {
-        const updated = await updateTodo.mutateAsync({
-          id: editTodo!.id,
-          data: {
-            title: data.title,
-            description: data.description,
-            status: data.status,
-            dueDate: data.dueDate,
-          },
+      const todo = isEditing
+        ? await updateTodo.mutateAsync({
+            id: editTodo!.id,
+            data: {
+              title: data.title,
+              description: data.description,
+              status: data.status,
+              dueDate: data.dueDate,
+            },
+          })
+        : await createTodo.mutateAsync(data);
+
+      if (pendingFiles.length > 0) {
+        await uploadAttachments.mutateAsync({
+          todoId: todo.id,
+          files: pendingFiles,
         });
-
-        if (pendingFiles.length > 0) {
-          await uploadAttachments.mutateAsync({
-            todoId: updated.id,
-            files: pendingFiles,
-          });
-        }
-
-        toast.success("Task updated");
-      } else {
-        const created = await createTodo.mutateAsync(data);
-
-        if (pendingFiles.length > 0) {
-          await uploadAttachments.mutateAsync({
-            todoId: created.id,
-            files: pendingFiles,
-          });
-        }
-
-        toast.success("Task created");
       }
 
+      toast.success(isEditing ? "Task updated" : "Task created");
       onOpenChange(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save task");

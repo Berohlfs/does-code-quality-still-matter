@@ -5,7 +5,7 @@ import { useUpdateTodo } from "@/app/(private)/_hooks/use-update-todo";
 import { getRootTodos, getChildren } from "@/app/(private)/_helpers/todos";
 import { TodoBody } from "./todo-item";
 import type { TodoDto } from "@/dto/todo";
-import type { TodoStatus } from "../_validations/todo-status";
+import type { TodoStatus } from "@/dto/todo";
 import { toast } from "sonner";
 
 const COLUMNS: Array<{ status: TodoStatus; label: string; dotClass: string }> = [

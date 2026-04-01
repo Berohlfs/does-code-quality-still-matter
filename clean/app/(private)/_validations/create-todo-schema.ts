@@ -1,5 +1,5 @@
 import { z } from "zod/v4";
-import { todoStatus } from "./todo-status";
+import { todoStatus } from "@/dto/todo";
 
 export const createTodoSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),

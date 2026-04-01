@@ -8,7 +8,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import type { TodoStatus } from "../_validations/todo-status";
+import type { TodoStatus } from "@/dto/todo";
 
 interface DashboardState {
   filter: TodoStatus | "all";

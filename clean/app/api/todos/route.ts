@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { todos, attachments } from "@/db/schemas";
-import { getRequestUser } from "@/app/api/_helpers/request";
+import { getRequestUser, validationError } from "@/app/api/_helpers/request";
 import { createTodoBodyDto, type TodoDto } from "@/dto/todo";
+import { toAttachmentDto } from "@/dto/attachment";
 import { emailProvider } from "@/providers/email";
 
 export async function GET() {
@@ -32,14 +33,7 @@ export async function GET() {
     description: t.description ?? "",
     status: (t.status ?? "pending") as TodoDto["status"],
     dueDate: t.dueDate,
-    attachments: atts
-      .filter((a) => a.todoId === t.id)
-      .map((a) => ({
-        id: a.id,
-        url: a.blobUrl,
-        originalName: a.originalName,
-        size: a.size,
-      })),
+    attachments: atts.filter((a) => a.todoId === t.id).map(toAttachmentDto),
   }));
 
   return NextResponse.json(result);
@@ -51,10 +45,7 @@ export async function POST(request: Request) {
   const result = createTodoBodyDto.safeParse(body);
 
   if (!result.success) {
-    return NextResponse.json(
-      { error: result.error.issues[0].message },
-      { status: 400 }
-    );
+    return validationError(result.error);
   }
 
   const { title, description, status, dueDate, parentId } = result.data;

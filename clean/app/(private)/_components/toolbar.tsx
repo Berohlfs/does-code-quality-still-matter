@@ -2,7 +2,7 @@
 
 import { useDashboard } from "./dashboard-context";
 import { Switch } from "@/components/ui/switch";
-import type { TodoStatus } from "../_validations/todo-status";
+import type { TodoStatus } from "@/dto/todo";
 
 const FILTERS: Array<{ value: TodoStatus | "all"; label: string }> = [
   { value: "all", label: "All" },

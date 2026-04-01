@@ -8,3 +8,17 @@ export const attachmentDto = z.object({
 });
 
 export type AttachmentDto = z.infer<typeof attachmentDto>;
+
+export function toAttachmentDto(row: {
+  id: string;
+  blobUrl: string;
+  originalName: string;
+  size: number;
+}): AttachmentDto {
+  return {
+    id: row.id,
+    url: row.blobUrl,
+    originalName: row.originalName,
+    size: row.size,
+  };
+}
