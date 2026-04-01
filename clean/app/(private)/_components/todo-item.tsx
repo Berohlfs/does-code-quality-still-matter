@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { Calendar, ChevronDown, ChevronRight, Pencil, Plus, Share2, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useTodos } from "@/app/(private)/_hooks/use-todos";
 import { getChildren, getAllDescendants, isOverdue } from "@/app/(private)/_helpers/todos";
@@ -32,9 +32,10 @@ interface TodoItemProps {
   onEdit: (todo: TodoDto) => void;
   onDelete: (todo: TodoDto) => void;
   onAddSubtask: (parentId: number) => void;
+  onShare?: (todo: TodoDto) => void;
 }
 
-export function TodoItem({ todo, nested, onEdit, onDelete, onAddSubtask }: TodoItemProps) {
+export function TodoItem({ todo, nested, onEdit, onDelete, onAddSubtask, onShare }: TodoItemProps) {
   const { data: todos = [] } = useTodos();
   const { collapsed, toggleCollapse } = useDashboard();
   const children = getChildren(todos, todo.id);
@@ -67,6 +68,7 @@ export function TodoItem({ todo, nested, onEdit, onDelete, onAddSubtask }: TodoI
         onEdit={onEdit}
         onDelete={onDelete}
         onAddSubtask={onAddSubtask}
+        onShare={onShare}
       />
 
       {hasChildren && !isCollapsed && (
@@ -75,6 +77,7 @@ export function TodoItem({ todo, nested, onEdit, onDelete, onAddSubtask }: TodoI
           onEdit={onEdit}
           onDelete={onDelete}
           onAddSubtask={onAddSubtask}
+          onShare={onShare}
         />
       )}
     </li>
@@ -86,11 +89,13 @@ function SubtaskList({
   onEdit,
   onDelete,
   onAddSubtask,
+  onShare,
 }: {
   parentId: number;
   onEdit: (todo: TodoDto) => void;
   onDelete: (todo: TodoDto) => void;
   onAddSubtask: (parentId: number) => void;
+  onShare?: (todo: TodoDto) => void;
 }) {
   const { data: todos = [] } = useTodos();
   const { filter } = useDashboard();
@@ -116,6 +121,7 @@ function SubtaskList({
           onEdit={onEdit}
           onDelete={onDelete}
           onAddSubtask={onAddSubtask}
+          onShare={onShare}
         />
       ))}
     </ul>
@@ -128,14 +134,19 @@ export function TodoBody({
   onEdit,
   onDelete,
   onAddSubtask,
+  onShare,
 }: {
   todo: TodoDto;
   showStatus: boolean;
   onEdit: (todo: TodoDto) => void;
   onDelete: (todo: TodoDto) => void;
   onAddSubtask: (parentId: number) => void;
+  onShare?: (todo: TodoDto) => void;
 }) {
   const overdue = isOverdue(todo);
+  const isShared = !!todo.sharing;
+  const canEdit = !isShared || todo.sharing?.role === "editor";
+  const isOwner = !isShared;
 
   return (
     <div>
@@ -148,17 +159,39 @@ export function TodoBody({
           {todo.title}
         </span>
         <span className="flex gap-0.5 opacity-0 transition-opacity group-hover/item:opacity-100">
-          <ActionButton title="Add subtask" onClick={() => onAddSubtask(todo.id)}>
-            <Plus className="h-3.5 w-3.5" />
-          </ActionButton>
-          <ActionButton title="Edit" onClick={() => onEdit(todo)}>
-            <Pencil className="h-3.5 w-3.5" />
-          </ActionButton>
-          <ActionButton title="Delete" onClick={() => onDelete(todo)}>
-            <Trash2 className="h-3.5 w-3.5" />
-          </ActionButton>
+          {canEdit && (
+            <ActionButton title="Add subtask" onClick={() => onAddSubtask(todo.id)}>
+              <Plus className="h-3.5 w-3.5" />
+            </ActionButton>
+          )}
+          {isOwner && !todo.parentId && onShare && (
+            <ActionButton title="Share" onClick={() => onShare(todo)}>
+              <Share2 className="h-3.5 w-3.5" />
+            </ActionButton>
+          )}
+          {canEdit && (
+            <ActionButton title="Edit" onClick={() => onEdit(todo)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </ActionButton>
+          )}
+          {isOwner && (
+            <ActionButton title="Delete" onClick={() => onDelete(todo)}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </ActionButton>
+          )}
         </span>
       </div>
+
+      {isShared && (
+        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Users className="h-3 w-3" />
+          <span>
+            Shared by {todo.sharing!.ownerName}
+            {" \u00b7 "}
+            <span className="font-semibold uppercase">{todo.sharing!.role}</span>
+          </span>
+        </div>
+      )}
 
       {todo.description && (
         <p className="mt-1 text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
@@ -173,6 +206,14 @@ export function TodoBody({
             className={`rounded-full px-2.5 py-0 text-[0.6875rem] font-semibold uppercase tracking-wide ${BADGE_VARIANTS[todo.status]}`}
           >
             {statusLabel(todo.status)}
+          </Badge>
+        )}
+        {isShared && (
+          <Badge
+            variant="secondary"
+            className="rounded-full border-violet-500/30 bg-violet-500/10 px-2.5 py-0 text-[0.6875rem] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400"
+          >
+            Shared
           </Badge>
         )}
         {todo.dueDate && (

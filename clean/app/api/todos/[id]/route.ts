@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { eq, and, sql } from "drizzle-orm";
 import { del } from "@vercel/blob";
 import { db } from "@/db/client";
-import { todos, attachments } from "@/db/schemas";
+import { todos, attachments, todoShares } from "@/db/schemas";
 import {
   getRequestUser,
   validationError,
   findUserTodo,
   notFound,
 } from "@/app/api/_helpers/request";
+import { findSharedTodoAccess } from "@/app/api/_helpers/shared-access";
 import {
   todoParamsDto,
   updateTodoBodyDto,
@@ -45,8 +46,15 @@ export async function PUT(request: Request, { params }: { params: Params }) {
     return validationError(bodyResult.error);
   }
 
-  const existing = await findUserTodo(id, user.id);
-  if (!existing) return notFound();
+  let existing = await findUserTodo(id, user.id);
+  if (!existing) {
+    // Check if user has editor access via sharing
+    const access = await findSharedTodoAccess(id, user.id);
+    if (!access || access.role !== "editor") return notFound();
+    const rows = await db.select().from(todos).where(eq(todos.id, id)).limit(1);
+    existing = rows[0] ?? null;
+    if (!existing) return notFound();
+  }
 
   const updates = bodyResult.data;
 
@@ -59,7 +67,7 @@ export async function PUT(request: Request, { params }: { params: Params }) {
   await db
     .update(todos)
     .set({ title, description, status, dueDate })
-    .where(and(eq(todos.id, id), eq(todos.userId, user.id)));
+    .where(eq(todos.id, id));
 
   const atts = await db
     .select()
@@ -74,6 +82,7 @@ export async function PUT(request: Request, { params }: { params: Params }) {
     status: status as TodoDto["status"],
     dueDate,
     attachments: atts.map(toAttachmentDto),
+    sharing: null,
   };
 
   return NextResponse.json(response);

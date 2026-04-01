@@ -10,6 +10,7 @@ import { TodoList } from "./todo-list";
 import { KanbanBoard } from "./kanban-board";
 import { TodoDialog } from "./todo-dialog";
 import { DeleteDialog } from "./delete-dialog";
+import { ShareDialog } from "./share-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TodoDto } from "@/dto/todo";
 
@@ -31,6 +32,9 @@ function DashboardContent() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTodo, setDeleteTodo] = useState<TodoDto | null>(null);
+
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareTodo, setShareTodo] = useState<TodoDto | null>(null);
 
   const handleNewTask = useCallback(() => {
     setEditTodo(null);
@@ -55,6 +59,11 @@ function DashboardContent() {
     setEditTodo(null);
     setParentId(pid);
     setDialogOpen(true);
+  }, []);
+
+  const handleShare = useCallback((todo: TodoDto) => {
+    setShareTodo(todo);
+    setShareDialogOpen(true);
   }, []);
 
   if (isLoading) {
@@ -85,12 +94,14 @@ function DashboardContent() {
             onEdit={handleEdit}
             onDelete={handleDelete}
             onAddSubtask={handleAddSubtask}
+            onShare={handleShare}
           />
         ) : (
           <KanbanBoard
             onEdit={handleEdit}
             onDelete={handleDelete}
             onAddSubtask={handleAddSubtask}
+            onShare={handleShare}
           />
         )}
       </main>
@@ -106,6 +117,12 @@ function DashboardContent() {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         todo={deleteTodo}
+      />
+
+      <ShareDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        todo={shareTodo}
       />
     </>
   );
