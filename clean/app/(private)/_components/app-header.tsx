@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTheme } from "next-themes";
 import { Moon, Sun, Plus, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,12 +16,14 @@ import {
 import { useLogout } from "@/app/(private)/_hooks/use-logout";
 import { useMe } from "@/app/(private)/_hooks/use-me";
 import { useNewTaskTrigger } from "./new-task-context";
+import { PendingInvitesBadge, PendingInvites } from "./pending-invites";
 
 export function AppHeader() {
   const { data: user } = useMe();
   const logoutMutation = useLogout();
   const { theme, setTheme } = useTheme();
   const onNewTask = useNewTaskTrigger();
+  const [invitesOpen, setInvitesOpen] = useState(false);
 
   const initials = user
     ? user.name
@@ -56,6 +59,8 @@ export function AppHeader() {
             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
           </Button>
 
+          <PendingInvitesBadge onClick={() => setInvitesOpen(true)} />
+
           <Button onClick={onNewTask} size="sm">
             <Plus className="mr-1 h-4 w-4" />
             New
@@ -88,6 +93,7 @@ export function AppHeader() {
           )}
         </div>
       </div>
+      <PendingInvites open={invitesOpen} onOpenChange={setInvitesOpen} />
     </header>
   );
 }

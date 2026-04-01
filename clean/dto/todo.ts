@@ -1,9 +1,17 @@
 import { z } from "zod/v4";
 import { attachmentDto } from "./attachment";
+import { shareRole } from "./share";
 
 export const todoStatus = z.enum(["pending", "in-progress", "done"]);
 
 export type TodoStatus = z.infer<typeof todoStatus>;
+
+export const todoShareInfo = z.object({
+  role: shareRole,
+  ownerName: z.string(),
+});
+
+export type TodoShareInfo = z.infer<typeof todoShareInfo>;
 
 export const todoDto = z.object({
   id: z.number(),
@@ -13,6 +21,7 @@ export const todoDto = z.object({
   status: todoStatus,
   dueDate: z.string().nullable(),
   attachments: z.array(attachmentDto),
+  share: todoShareInfo.optional(),
 });
 
 export type TodoDto = z.infer<typeof todoDto>;

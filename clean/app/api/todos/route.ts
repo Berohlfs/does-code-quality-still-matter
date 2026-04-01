@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { eq, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { todos, attachments } from "@/db/schemas";
+import { todos, attachments, shares, users } from "@/db/schemas";
 import { getRequestUser, validationError } from "@/app/api/_helpers/request";
 import { createTodoBodyDto, type TodoDto } from "@/dto/todo";
 import { toAttachmentDto } from "@/dto/attachment";
@@ -10,13 +10,53 @@ import { emailProvider } from "@/providers/email";
 export async function GET() {
   const user = await getRequestUser();
 
-  const rows = await db
+  const ownedRows = await db
     .select()
     .from(todos)
     .where(eq(todos.userId, user.id))
     .orderBy(todos.createdAt);
 
-  const todoIds = rows.map((t) => t.id);
+  const acceptedShares = await db
+    .select({
+      todoId: shares.todoId,
+      role: shares.role,
+      ownerName: users.name,
+    })
+    .from(shares)
+    .innerJoin(users, eq(users.id, shares.ownerUserId))
+    .where(
+      and(eq(shares.sharedUserId, user.id), eq(shares.status, "accepted"))
+    );
+
+  const sharedRootIds = acceptedShares.map((s) => s.todoId);
+
+  let sharedRows: (typeof ownedRows) = [];
+  if (sharedRootIds.length > 0) {
+    sharedRows = await db.execute<(typeof ownedRows)[0]>(sql`
+      WITH RECURSIVE tree AS (
+        SELECT * FROM todos WHERE id IN ${sql`(${sql.join(sharedRootIds.map((id) => sql`${id}`), sql`, `)})`}
+        UNION ALL
+        SELECT t.* FROM todos t INNER JOIN tree tr ON t.parent_id = tr.id
+      )
+      SELECT * FROM tree ORDER BY created_at
+    `);
+  }
+
+  const shareByRootId = new Map(
+    acceptedShares.map((s) => [s.todoId, { role: s.role as TodoDto["share"] extends { role: infer R } ? R : never, ownerName: s.ownerName }])
+  );
+
+  function getShareInfoForTodo(todo: { id: number; parentId: number | null }): TodoDto["share"] {
+    if (shareByRootId.has(todo.id)) return shareByRootId.get(todo.id)!;
+    if (todo.parentId) {
+      const parent = sharedRows.find((r) => r.id === todo.parentId);
+      if (parent) return getShareInfoForTodo(parent);
+    }
+    return undefined;
+  }
+
+  const allRows = [...ownedRows, ...sharedRows];
+  const todoIds = allRows.map((t) => t.id);
 
   const atts =
     todoIds.length > 0
@@ -26,15 +66,19 @@ export async function GET() {
           .where(inArray(attachments.todoId, todoIds))
       : [];
 
-  const result: TodoDto[] = rows.map((t) => ({
-    id: t.id,
-    parentId: t.parentId,
-    title: t.title,
-    description: t.description ?? "",
-    status: (t.status ?? "pending") as TodoDto["status"],
-    dueDate: t.dueDate,
-    attachments: atts.filter((a) => a.todoId === t.id).map(toAttachmentDto),
-  }));
+  const result: TodoDto[] = allRows.map((t) => {
+    const isShared = sharedRows.some((s) => s.id === t.id);
+    return {
+      id: t.id,
+      parentId: t.parentId,
+      title: t.title,
+      description: t.description ?? "",
+      status: (t.status ?? "pending") as TodoDto["status"],
+      dueDate: t.dueDate,
+      attachments: atts.filter((a) => a.todoId === t.id).map(toAttachmentDto),
+      ...(isShared ? { share: getShareInfoForTodo(t) } : {}),
+    };
+  });
 
   return NextResponse.json(result);
 }

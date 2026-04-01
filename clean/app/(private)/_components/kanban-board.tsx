@@ -18,9 +18,10 @@ interface KanbanBoardProps {
   onEdit: (todo: TodoDto) => void;
   onDelete: (todo: TodoDto) => void;
   onAddSubtask: (parentId: number) => void;
+  onShare: (todo: TodoDto) => void;
 }
 
-export function KanbanBoard({ onEdit, onDelete, onAddSubtask }: KanbanBoardProps) {
+export function KanbanBoard({ onEdit, onDelete, onAddSubtask, onShare }: KanbanBoardProps) {
   const { data: todos = [] } = useTodos();
   const updateTodo = useUpdateTodo();
   const rootTodos = getRootTodos(todos);
@@ -50,6 +51,7 @@ export function KanbanBoard({ onEdit, onDelete, onAddSubtask }: KanbanBoardProps
             onEdit={onEdit}
             onDelete={onDelete}
             onAddSubtask={onAddSubtask}
+            onShare={onShare}
           />
         );
       })}
@@ -68,6 +70,7 @@ function KanbanColumn({
   onEdit,
   onDelete,
   onAddSubtask,
+  onShare,
 }: {
   status: TodoStatus;
   label: string;
@@ -79,6 +82,7 @@ function KanbanColumn({
   onEdit: (todo: TodoDto) => void;
   onDelete: (todo: TodoDto) => void;
   onAddSubtask: (parentId: number) => void;
+  onShare: (todo: TodoDto) => void;
 }) {
   function handleDragOver(e: React.DragEvent) {
     e.preventDefault();
@@ -127,6 +131,7 @@ function KanbanColumn({
               onEdit={onEdit}
               onDelete={onDelete}
               onAddSubtask={onAddSubtask}
+              onShare={onShare}
             />
           ))
         )}
@@ -141,13 +146,16 @@ function KanbanCard({
   onEdit,
   onDelete,
   onAddSubtask,
+  onShare,
 }: {
   todo: TodoDto;
   allTodos: TodoDto[];
   onEdit: (todo: TodoDto) => void;
   onDelete: (todo: TodoDto) => void;
   onAddSubtask: (parentId: number) => void;
+  onShare: (todo: TodoDto) => void;
 }) {
+  const isViewer = todo.share?.role === "viewer";
   function handleDragStart(e: React.DragEvent) {
     e.dataTransfer.setData("text/plain", String(todo.id));
     e.dataTransfer.effectAllowed = "move";
@@ -162,10 +170,12 @@ function KanbanCard({
 
   return (
     <div
-      className="group/item cursor-grab rounded-xl border bg-card p-3.5 transition-all hover:shadow-md active:cursor-grabbing"
-      draggable
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
+      className={`group/item rounded-xl border bg-card p-3.5 transition-all hover:shadow-md ${
+        isViewer ? "cursor-default" : "cursor-grab active:cursor-grabbing"
+      }`}
+      draggable={!isViewer}
+      onDragStart={isViewer ? undefined : handleDragStart}
+      onDragEnd={isViewer ? undefined : handleDragEnd}
     >
       <TodoBody
         todo={todo}
@@ -173,6 +183,7 @@ function KanbanCard({
         onEdit={onEdit}
         onDelete={onDelete}
         onAddSubtask={onAddSubtask}
+        onShare={onShare}
       />
 
       {children.length > 0 && (

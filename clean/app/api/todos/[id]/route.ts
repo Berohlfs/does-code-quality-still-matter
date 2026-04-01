@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq, and, sql } from "drizzle-orm";
 import { del } from "@vercel/blob";
 import { db } from "@/db/client";
-import { todos, attachments } from "@/db/schemas";
+import { todos, attachments, shares } from "@/db/schemas";
 import {
   getRequestUser,
   validationError,
@@ -18,6 +18,18 @@ import {
 import { toAttachmentDto } from "@/dto/attachment";
 
 type Params = Promise<{ id: string }>;
+
+async function findRootTodoId(todoId: number): Promise<number> {
+  const rows = await db.execute<{ id: number; parent_id: number | null }>(sql`
+    WITH RECURSIVE chain AS (
+      SELECT id, parent_id FROM todos WHERE id = ${todoId}
+      UNION ALL
+      SELECT t.id, t.parent_id FROM todos t INNER JOIN chain c ON t.id = c.parent_id
+    )
+    SELECT id, parent_id FROM chain WHERE parent_id IS NULL
+  `);
+  return rows[0]?.id ?? todoId;
+}
 
 async function deleteBlobs(urls: string[]) {
   for (const url of urls) {
@@ -45,8 +57,35 @@ export async function PUT(request: Request, { params }: { params: Params }) {
     return validationError(bodyResult.error);
   }
 
-  const existing = await findUserTodo(id, user.id);
-  if (!existing) return notFound();
+  let existing = await findUserTodo(id, user.id);
+
+  if (!existing) {
+    const todoRow = await db
+      .select()
+      .from(todos)
+      .where(eq(todos.id, id))
+      .limit(1);
+
+    if (todoRow.length === 0) return notFound();
+
+    const rootId = await findRootTodoId(id);
+
+    const editorShare = await db
+      .select({ id: shares.id })
+      .from(shares)
+      .where(
+        and(
+          eq(shares.todoId, rootId),
+          eq(shares.sharedUserId, user.id),
+          eq(shares.role, "editor"),
+          eq(shares.status, "accepted")
+        )
+      )
+      .limit(1);
+
+    if (editorShare.length === 0) return notFound();
+    existing = todoRow[0];
+  }
 
   const updates = bodyResult.data;
 
@@ -59,7 +98,7 @@ export async function PUT(request: Request, { params }: { params: Params }) {
   await db
     .update(todos)
     .set({ title, description, status, dueDate })
-    .where(and(eq(todos.id, id), eq(todos.userId, user.id)));
+    .where(eq(todos.id, id));
 
   const atts = await db
     .select()
