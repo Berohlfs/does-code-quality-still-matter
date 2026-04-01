@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { createHash } from "crypto";
+import postgres from "postgres";
 
 const PUBLIC_API_PATHS = ["/api/auth/signin", "/api/auth/signup"];
 const AUTH_PAGES = ["/sign-in", "/sign-up"];
@@ -11,10 +13,44 @@ function getSecret() {
   return new TextEncoder().encode(secret);
 }
 
-async function verifyAuthToken(token: string) {
+async function verifyJwt(token: string) {
   try {
     const { payload } = await jwtVerify(token, getSecret());
     return payload;
+  } catch {
+    return null;
+  }
+}
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+async function verifyApiToken(
+  bearerToken: string
+): Promise<{ id: number; email: string; name: string } | null> {
+  const tokenHash = hashToken(bearerToken);
+  const sql = postgres(process.env.DATABASE_POOL_URL!, { prepare: false });
+  try {
+    const rows = await sql`
+      SELECT u.id, u.email, u.name, t.id AS token_id
+      FROM api_tokens t
+      JOIN users u ON u.id = t.user_id
+      WHERE t.token_hash = ${tokenHash}
+      LIMIT 1
+    `;
+    if (rows.length === 0) return null;
+
+    // Update last_used_at in the background (fire-and-forget)
+    sql`UPDATE api_tokens SET last_used_at = now() WHERE id = ${rows[0].token_id}`.catch(
+      () => {}
+    );
+
+    return {
+      id: Number(rows[0].id),
+      email: rows[0].email,
+      name: rows[0].name,
+    };
   } catch {
     return null;
   }
@@ -30,8 +66,18 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get("auth-token")?.value;
-  const payload = token ? await verifyAuthToken(token) : null;
+  // Try JWT cookie first, then Bearer token for API routes
+  const cookieToken = request.cookies.get("auth-token")?.value;
+  let payload = cookieToken ? await verifyJwt(cookieToken) : null;
+
+  // If no JWT cookie and this is an API request, check for Bearer token
+  if (!payload && isApiRoute) {
+    const authHeader = request.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer tf_")) {
+      const bearerToken = authHeader.slice(7);
+      payload = await verifyApiToken(bearerToken);
+    }
+  }
 
   // Authenticated user visiting login → redirect to home
   if (isAuthPage && payload) {

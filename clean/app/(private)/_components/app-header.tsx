@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { Moon, Sun, Plus, LogOut } from "lucide-react";
+import { Moon, Sun, Plus, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
 import { useLogout } from "@/app/(private)/_hooks/use-logout";
 import { useMe } from "@/app/(private)/_hooks/use-me";
 import { useNewTaskTrigger } from "./new-task-context";
@@ -19,6 +20,7 @@ import { useNewTaskTrigger } from "./new-task-context";
 export function AppHeader() {
   const { data: user } = useMe();
   const logoutMutation = useLogout();
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
   const onNewTask = useNewTaskTrigger();
 
@@ -76,6 +78,13 @@ export function AppHeader() {
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => router.push("/settings")}
+                  className="cursor-pointer"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => logoutMutation.mutate()}
                   className="cursor-pointer"
