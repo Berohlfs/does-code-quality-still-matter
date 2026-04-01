@@ -7,7 +7,9 @@ import {
   getRequestUser,
   validationError,
   findUserTodo,
+  findAccessibleTodo,
   notFound,
+  forbidden,
 } from "@/app/api/_helpers/request";
 import {
   todoParamsDto,
@@ -45,9 +47,13 @@ export async function PUT(request: Request, { params }: { params: Params }) {
     return validationError(bodyResult.error);
   }
 
-  const existing = await findUserTodo(id, user.id);
-  if (!existing) return notFound();
+  const access = await findAccessibleTodo(id, user);
+  if (!access) return notFound();
+  if (access.type === "shared" && access.role !== "editor") {
+    return forbidden("Viewers cannot edit todos");
+  }
 
+  const existing = access.todo;
   const updates = bodyResult.data;
 
   const title = updates.title ?? existing.title;
@@ -59,7 +65,7 @@ export async function PUT(request: Request, { params }: { params: Params }) {
   await db
     .update(todos)
     .set({ title, description, status, dueDate })
-    .where(and(eq(todos.id, id), eq(todos.userId, user.id)));
+    .where(eq(todos.id, id));
 
   const atts = await db
     .select()
@@ -74,6 +80,7 @@ export async function PUT(request: Request, { params }: { params: Params }) {
     status: status as TodoDto["status"],
     dueDate,
     attachments: atts.map(toAttachmentDto),
+    share: null,
   };
 
   return NextResponse.json(response);

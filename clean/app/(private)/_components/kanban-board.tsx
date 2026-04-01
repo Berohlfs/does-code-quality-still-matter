@@ -18,14 +18,20 @@ interface KanbanBoardProps {
   onEdit: (todo: TodoDto) => void;
   onDelete: (todo: TodoDto) => void;
   onAddSubtask: (parentId: number) => void;
+  onShare: (todo: TodoDto) => void;
 }
 
-export function KanbanBoard({ onEdit, onDelete, onAddSubtask }: KanbanBoardProps) {
+export function KanbanBoard({ onEdit, onDelete, onAddSubtask, onShare }: KanbanBoardProps) {
   const { data: todos = [] } = useTodos();
   const updateTodo = useUpdateTodo();
   const rootTodos = getRootTodos(todos);
 
   function handleDrop(todoId: number, newStatus: TodoStatus) {
+    const todo = todos.find((t) => t.id === todoId);
+    if (todo?.share?.role === "viewer") {
+      toast.error("Viewers cannot edit todos");
+      return;
+    }
     updateTodo.mutate(
       { id: todoId, data: { status: newStatus } },
       { onError: () => toast.error("Failed to update status") }
@@ -50,6 +56,7 @@ export function KanbanBoard({ onEdit, onDelete, onAddSubtask }: KanbanBoardProps
             onEdit={onEdit}
             onDelete={onDelete}
             onAddSubtask={onAddSubtask}
+            onShare={onShare}
           />
         );
       })}
@@ -68,6 +75,7 @@ function KanbanColumn({
   onEdit,
   onDelete,
   onAddSubtask,
+  onShare,
 }: {
   status: TodoStatus;
   label: string;
@@ -79,6 +87,7 @@ function KanbanColumn({
   onEdit: (todo: TodoDto) => void;
   onDelete: (todo: TodoDto) => void;
   onAddSubtask: (parentId: number) => void;
+  onShare: (todo: TodoDto) => void;
 }) {
   function handleDragOver(e: React.DragEvent) {
     e.preventDefault();
@@ -127,6 +136,7 @@ function KanbanColumn({
               onEdit={onEdit}
               onDelete={onDelete}
               onAddSubtask={onAddSubtask}
+              onShare={onShare}
             />
           ))
         )}
@@ -141,12 +151,14 @@ function KanbanCard({
   onEdit,
   onDelete,
   onAddSubtask,
+  onShare,
 }: {
   todo: TodoDto;
   allTodos: TodoDto[];
   onEdit: (todo: TodoDto) => void;
   onDelete: (todo: TodoDto) => void;
   onAddSubtask: (parentId: number) => void;
+  onShare: (todo: TodoDto) => void;
 }) {
   function handleDragStart(e: React.DragEvent) {
     e.dataTransfer.setData("text/plain", String(todo.id));
@@ -173,6 +185,7 @@ function KanbanCard({
         onEdit={onEdit}
         onDelete={onDelete}
         onAddSubtask={onAddSubtask}
+        onShare={onShare}
       />
 
       {children.length > 0 && (

@@ -6,8 +6,9 @@ import { attachments } from "@/db/schemas";
 import {
   getRequestUser,
   validationError,
-  findUserTodo,
+  findAccessibleTodo,
   notFound,
+  forbidden,
 } from "@/app/api/_helpers/request";
 import { todoParamsDto } from "@/dto/todo";
 import type { AttachmentDto } from "@/dto/attachment";
@@ -27,8 +28,11 @@ export async function POST(request: Request, { params }: { params: Params }) {
   }
   const todoId = Number(paramsResult.data.id);
 
-  const todo = await findUserTodo(todoId, user.id);
-  if (!todo) return notFound();
+  const access = await findAccessibleTodo(todoId, user);
+  if (!access) return notFound();
+  if (access.type === "shared" && access.role !== "editor") {
+    return forbidden("Viewers cannot upload attachments");
+  }
 
   const formData = await request.formData();
   const files = formData.getAll("files") as File[];

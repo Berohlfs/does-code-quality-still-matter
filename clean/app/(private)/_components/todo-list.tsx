@@ -11,9 +11,10 @@ interface TodoListProps {
   onEdit: (todo: TodoDto) => void;
   onDelete: (todo: TodoDto) => void;
   onAddSubtask: (parentId: number) => void;
+  onShare: (todo: TodoDto) => void;
 }
 
-export function TodoList({ onEdit, onDelete, onAddSubtask }: TodoListProps) {
+export function TodoList({ onEdit, onDelete, onAddSubtask, onShare }: TodoListProps) {
   const { data: todos = [] } = useTodos();
   const { filter } = useDashboard();
 
@@ -50,6 +51,7 @@ export function TodoList({ onEdit, onDelete, onAddSubtask }: TodoListProps) {
           onEdit={onEdit}
           onDelete={onDelete}
           onAddSubtask={onAddSubtask}
+          onShare={onShare}
         />
       ))}
     </ul>

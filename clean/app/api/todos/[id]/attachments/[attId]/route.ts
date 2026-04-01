@@ -6,8 +6,9 @@ import { attachments } from "@/db/schemas";
 import {
   getRequestUser,
   validationError,
-  findUserTodo,
+  findAccessibleTodo,
   notFound,
+  forbidden,
 } from "@/app/api/_helpers/request";
 import { attachmentParamsDto } from "@/dto/todo";
 
@@ -28,8 +29,11 @@ export async function DELETE(
   const todoId = Number(paramsResult.data.id);
   const { attId } = paramsResult.data;
 
-  const todo = await findUserTodo(todoId, user.id);
-  if (!todo) return notFound();
+  const access = await findAccessibleTodo(todoId, user);
+  if (!access) return notFound();
+  if (access.type === "shared" && access.role !== "editor") {
+    return forbidden("Viewers cannot delete attachments");
+  }
 
   const attRows = await db
     .select()
