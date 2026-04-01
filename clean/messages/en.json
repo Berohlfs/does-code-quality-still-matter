@@ -1,0 +1,106 @@
+{
+  "common": {
+    "appName": "Taskflow",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signingIn": "Signing in...",
+    "signUp": "Create Account",
+    "signingUp": "Creating account...",
+    "signInDescription": "Sign in to manage your tasks",
+    "signUpDescription": "Create an account to get started",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signUpLink": "Sign up",
+    "signInLink": "Sign in",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Your password",
+    "nameLabel": "Name",
+    "namePlaceholder": "Your name",
+    "passwordMinPlaceholder": "At least 6 characters"
+  },
+  "validation": {
+    "emailInvalid": "Invalid email address",
+    "passwordRequired": "Password is required",
+    "passwordMin": "Password must be at least 6 characters",
+    "nameRequired": "Name is required",
+    "titleRequired": "Title is required"
+  },
+  "dashboard": {
+    "total": "Total",
+    "pending": "Pending",
+    "inProgress": "In Progress",
+    "done": "Done",
+    "completed": "Completed",
+    "allTasks": "All Tasks",
+    "pendingTasks": "Pending Tasks",
+    "inProgressTasks": "In Progress",
+    "completedTasks": "Completed",
+    "list": "List",
+    "board": "Board",
+    "all": "All",
+    "noItems": "No items",
+    "noTasksAll": "No tasks yet",
+    "noTasksPending": "No pending tasks yet",
+    "noTasksInProgress": "No in progress tasks yet",
+    "noTasksDone": "No completed tasks yet",
+    "subtasksCount": "Subtasks ({count})"
+  },
+  "todoDialog": {
+    "editTask": "Edit Task",
+    "newTask": "New Task",
+    "newSubtask": "New Subtask",
+    "subtaskOf": "Subtask of: {title}",
+    "titleLabel": "Title *",
+    "titlePlaceholder": "What needs to be done?",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Add some details...",
+    "statusLabel": "Status",
+    "dueDateLabel": "Due Date",
+    "attachmentsLabel": "Attachments",
+    "currentAttachments": "Current Attachments",
+    "taskCreated": "Task created",
+    "taskUpdated": "Task updated",
+    "taskSaveFailed": "Failed to save task",
+    "attachmentRemoved": "Attachment removed",
+    "attachmentRemoveFailed": "Failed to remove attachment"
+  },
+  "deleteDialog": {
+    "deleteTask": "Delete Task",
+    "confirmDelete": "Are you sure you want to delete \"{title}\"?",
+    "hasSubtasks": "\"{title}\" has {count} subtask(s). How would you like to proceed?",
+    "deleteAll": "Delete all",
+    "keepSubtasks": "Keep subtasks",
+    "taskDeleted": "Task deleted",
+    "deleteFailed": "Failed to delete task"
+  },
+  "attachments": {
+    "dropZoneText": "Click or drag files here (max 4 MB each)"
+  },
+  "header": {
+    "toggleTheme": "Toggle theme",
+    "new": "New",
+    "logOut": "Log out"
+  },
+  "todoItem": {
+    "addSubtask": "Add subtask",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "kanban": {
+    "statusUpdateFailed": "Failed to update status"
+  },
+  "metadata": {
+    "title": "Taskflow",
+    "description": "Task management made simple"
+  },
+  "localeSwitcher": {
+    "label": "Language"
+  }
+}

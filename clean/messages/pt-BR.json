@@ -1,0 +1,106 @@
+{
+  "common": {
+    "appName": "Taskflow",
+    "save": "Salvar",
+    "saving": "Salvando...",
+    "cancel": "Cancelar",
+    "delete": "Excluir"
+  },
+  "auth": {
+    "signIn": "Entrar",
+    "signingIn": "Entrando...",
+    "signUp": "Criar Conta",
+    "signingUp": "Criando conta...",
+    "signInDescription": "Entre para gerenciar suas tarefas",
+    "signUpDescription": "Crie uma conta para começar",
+    "noAccount": "Não tem uma conta?",
+    "hasAccount": "Já tem uma conta?",
+    "signUpLink": "Cadastre-se",
+    "signInLink": "Entrar",
+    "emailLabel": "E-mail",
+    "emailPlaceholder": "voce@exemplo.com",
+    "passwordLabel": "Senha",
+    "passwordPlaceholder": "Sua senha",
+    "nameLabel": "Nome",
+    "namePlaceholder": "Seu nome",
+    "passwordMinPlaceholder": "Mínimo de 6 caracteres"
+  },
+  "validation": {
+    "emailInvalid": "Endereço de e-mail inválido",
+    "passwordRequired": "Senha é obrigatória",
+    "passwordMin": "A senha deve ter pelo menos 6 caracteres",
+    "nameRequired": "Nome é obrigatório",
+    "titleRequired": "Título é obrigatório"
+  },
+  "dashboard": {
+    "total": "Total",
+    "pending": "Pendente",
+    "inProgress": "Em Andamento",
+    "done": "Concluído",
+    "completed": "Concluídas",
+    "allTasks": "Todas as Tarefas",
+    "pendingTasks": "Tarefas Pendentes",
+    "inProgressTasks": "Em Andamento",
+    "completedTasks": "Concluídas",
+    "list": "Lista",
+    "board": "Quadro",
+    "all": "Todas",
+    "noItems": "Nenhum item",
+    "noTasksAll": "Nenhuma tarefa ainda",
+    "noTasksPending": "Nenhuma tarefa pendente ainda",
+    "noTasksInProgress": "Nenhuma tarefa em andamento ainda",
+    "noTasksDone": "Nenhuma tarefa concluída ainda",
+    "subtasksCount": "Subtarefas ({count})"
+  },
+  "todoDialog": {
+    "editTask": "Editar Tarefa",
+    "newTask": "Nova Tarefa",
+    "newSubtask": "Nova Subtarefa",
+    "subtaskOf": "Subtarefa de: {title}",
+    "titleLabel": "Título *",
+    "titlePlaceholder": "O que precisa ser feito?",
+    "descriptionLabel": "Descrição",
+    "descriptionPlaceholder": "Adicione alguns detalhes...",
+    "statusLabel": "Status",
+    "dueDateLabel": "Data de Vencimento",
+    "attachmentsLabel": "Anexos",
+    "currentAttachments": "Anexos Atuais",
+    "taskCreated": "Tarefa criada",
+    "taskUpdated": "Tarefa atualizada",
+    "taskSaveFailed": "Falha ao salvar tarefa",
+    "attachmentRemoved": "Anexo removido",
+    "attachmentRemoveFailed": "Falha ao remover anexo"
+  },
+  "deleteDialog": {
+    "deleteTask": "Excluir Tarefa",
+    "confirmDelete": "Tem certeza que deseja excluir \"{title}\"?",
+    "hasSubtasks": "\"{title}\" tem {count} subtarefa(s). Como deseja prosseguir?",
+    "deleteAll": "Excluir tudo",
+    "keepSubtasks": "Manter subtarefas",
+    "taskDeleted": "Tarefa excluída",
+    "deleteFailed": "Falha ao excluir tarefa"
+  },
+  "attachments": {
+    "dropZoneText": "Clique ou arraste arquivos aqui (máx. 4 MB cada)"
+  },
+  "header": {
+    "toggleTheme": "Alternar tema",
+    "new": "Nova",
+    "logOut": "Sair"
+  },
+  "todoItem": {
+    "addSubtask": "Adicionar subtarefa",
+    "edit": "Editar",
+    "delete": "Excluir"
+  },
+  "kanban": {
+    "statusUpdateFailed": "Falha ao atualizar status"
+  },
+  "metadata": {
+    "title": "Taskflow",
+    "description": "Gerenciamento de tarefas simplificado"
+  },
+  "localeSwitcher": {
+    "label": "Idioma"
+  }
+}
