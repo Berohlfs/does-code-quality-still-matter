@@ -9,7 +9,8 @@ import {
   findUserTodo,
   notFound,
 } from "@/app/api/_helpers/request";
-import { todoParamsDto, type AttachmentDto } from "@/dto/todo";
+import { todoParamsDto } from "@/dto/todo";
+import type { AttachmentDto } from "@/dto/attachment";
 
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB
 const MAX_FILES = 10;

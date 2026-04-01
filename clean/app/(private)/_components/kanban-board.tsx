@@ -182,6 +182,12 @@ function KanbanCard({
   );
 }
 
+const DOT_COLORS = {
+  pending: "bg-amber-500",
+  "in-progress": "bg-blue-500",
+  done: "bg-emerald-500",
+} as const;
+
 function KanbanSubtasks({
   parentId,
   allTodos,
@@ -193,12 +199,6 @@ function KanbanSubtasks({
 }) {
   const children = getChildren(allTodos, parentId);
   if (children.length === 0) return null;
-
-  const DOT_COLORS = {
-    pending: "bg-amber-500",
-    "in-progress": "bg-blue-500",
-    done: "bg-emerald-500",
-  };
 
   return (
     <div

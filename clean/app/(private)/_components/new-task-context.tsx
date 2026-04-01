@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useCallback, useRef, type ReactNode } from "react";
+import { createContext, useContext, useCallback, useEffect, useRef, type ReactNode } from "react";
 
 const NewTaskContext = createContext<{
   onNewTask: () => void;
@@ -34,5 +34,7 @@ export function useNewTaskTrigger() {
 export function useRegisterNewTaskHandler(handler: () => void) {
   const ctx = useContext(NewTaskContext);
   if (!ctx) throw new Error("useRegisterNewTaskHandler must be used within NewTaskProvider");
-  ctx.registerHandler(handler);
+  useEffect(() => {
+    ctx.registerHandler(handler);
+  }, [ctx, handler]);
 }

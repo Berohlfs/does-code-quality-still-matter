@@ -28,12 +28,13 @@ function statusLabel(s: string) {
 
 interface TodoItemProps {
   todo: TodoDto;
+  nested?: boolean;
   onEdit: (todo: TodoDto) => void;
   onDelete: (todo: TodoDto) => void;
   onAddSubtask: (parentId: number) => void;
 }
 
-export function TodoItem({ todo, onEdit, onDelete, onAddSubtask }: TodoItemProps) {
+export function TodoItem({ todo, nested, onEdit, onDelete, onAddSubtask }: TodoItemProps) {
   const { data: todos = [] } = useTodos();
   const { collapsed, toggleCollapse } = useDashboard();
   const children = getChildren(todos, todo.id);
@@ -42,7 +43,9 @@ export function TodoItem({ todo, onEdit, onDelete, onAddSubtask }: TodoItemProps
 
   return (
     <li
-      className={`group/item rounded-xl border-l-[3px] border bg-card p-4 transition-all hover:shadow-md ${STATUS_COLORS[todo.status]}`}
+      className={`group/item border-l-[3px] border bg-card transition-all hover:shadow-md ${STATUS_COLORS[todo.status]} ${
+        nested ? "rounded-lg p-3" : "rounded-xl p-4"
+      }`}
     >
       {hasChildren && (
         <button
@@ -90,7 +93,7 @@ function SubtaskList({
   onAddSubtask: (parentId: number) => void;
 }) {
   const { data: todos = [] } = useTodos();
-  const { filter, collapsed, toggleCollapse } = useDashboard();
+  const { filter } = useDashboard();
 
   let items = getChildren(todos, parentId);
   if (filter !== "all") {
@@ -105,49 +108,16 @@ function SubtaskList({
 
   return (
     <ul className="mt-2.5 ml-2 flex flex-col gap-1.5 border-l-2 border-border pl-4">
-      {items.map((t) => {
-        const children = getChildren(todos, t.id);
-        const hasChildren = children.length > 0;
-        const isCollapsed = collapsed.has(t.id);
-
-        return (
-          <li
-            key={t.id}
-            className={`group/item rounded-lg border-l-[3px] border bg-card p-3 transition-all hover:shadow-md ${STATUS_COLORS[t.status]}`}
-          >
-            {hasChildren && (
-              <button
-                onClick={() => toggleCollapse(t.id)}
-                className="mb-1 flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold text-primary hover:bg-primary/5"
-              >
-                {isCollapsed ? (
-                  <ChevronRight className="h-3 w-3" />
-                ) : (
-                  <ChevronDown className="h-3 w-3" />
-                )}
-                <span className="text-muted-foreground">{children.length}</span>
-              </button>
-            )}
-
-            <TodoBody
-              todo={t}
-              showStatus
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onAddSubtask={onAddSubtask}
-            />
-
-            {hasChildren && !isCollapsed && (
-              <SubtaskList
-                parentId={t.id}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onAddSubtask={onAddSubtask}
-              />
-            )}
-          </li>
-        );
-      })}
+      {items.map((t) => (
+        <TodoItem
+          key={t.id}
+          todo={t}
+          nested
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onAddSubtask={onAddSubtask}
+        />
+      ))}
     </ul>
   );
 }

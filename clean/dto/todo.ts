@@ -1,6 +1,5 @@
 import { z } from "zod/v4";
-import { attachmentDto, type AttachmentDto } from "./attachment";
-export type { AttachmentDto };
+import { attachmentDto } from "./attachment";
 
 export const todoStatus = z.enum(["pending", "in-progress", "done"]);
 
