@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
-const PUBLIC_API_PATHS = ["/api/auth/signin", "/api/auth/signup"];
+const PUBLIC_API_PATHS = ["/api/auth/signin", "/api/auth/signup", "/api/auth/google", "/api/auth/google/callback"];
 const AUTH_PAGES = ["/sign-in", "/sign-up"];
 
 function getSecret() {

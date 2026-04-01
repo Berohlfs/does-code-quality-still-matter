@@ -33,6 +33,14 @@ export async function POST(request: Request) {
   }
 
   const user = rows[0];
+
+  if (!user.passwordHash) {
+    return NextResponse.json(
+      { error: "This account uses Google sign-in. Please sign in with Google." },
+      { status: 400 }
+    );
+  }
+
   const valid = await verify(user.passwordHash, password);
 
   if (!valid) {
